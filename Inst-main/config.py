@@ -139,7 +139,19 @@ class Config:
             "webrtc_mode": "altered",
             "canvas_mode": "noise",
             "webgl_mode": "noise",
-            "client_rect_mode": "noise"
+            "client_rect_mode": "noise",
+            "profile_settings": {
+                "platform": "windows",
+                "browser_version": "latest",
+                "screen_resolution": "1920x1080",
+                "timezone": "auto",
+                "language": "en-US,en;q=0.9",
+                "geolocation": "auto",
+                "cpu": "4",
+                "memory": "8",
+                "do_not_track": True,
+                "media_devices": "default"
+            }
         }
     }
     
@@ -333,6 +345,15 @@ class Config:
             "track_success_rate": True,
             "save_detailed_logs": True,
             "export_reports": True
+        },
+        
+        # Розподіл таргетів
+        "target_distribution": {
+            "enabled": True,
+            "strategy": "round_robin",  # round_robin, random, sequential
+            "avoid_duplicates": True,
+            "min_targets_per_account": 1,
+            "balance_load": True
         }
     }
     
@@ -538,6 +559,27 @@ class Config:
         return None
         
     @classmethod
+    def get_dolphin_config(cls):
+        """Отримання конфігурації Dolphin Anty"""
+        return cls.BROWSER_SETTINGS.get("Dolphin Anty", {})
+        
+    @classmethod
+    def get_chrome_config(cls):
+        """Отримання конфігурації Chrome"""
+        return cls.BROWSER_SETTINGS.get("Chrome", {})
+        
+    @classmethod
+    def create_dolphin_profile_name(cls, username):
+        """Створення назви профілю для Dolphin"""
+        prefix = cls.get_dolphin_config().get("profile_prefix", "instagram_")
+        return f"{prefix}{username}"
+        
+    @classmethod
+    def get_target_distribution_config(cls):
+        """Отримання конфігурації розподілу таргетів"""
+        return cls.MULTI_USER_CONFIG.get("target_distribution", {})
+        
+    @classmethod
     def validate_username(cls, username):
         """Валідація юзернейму"""
         if not username:
@@ -739,14 +781,15 @@ class Config:
             "name": "Instagram Bot Multi-User",
             "features": [
                 "Multiple users support",
-                "Batch processing",
+                "Batch processing", 
                 "Enhanced GUI",
                 "Advanced validation",
                 "Detailed reporting",
                 "Improved security",
                 "Human-like behavior",
                 "Browser switching (Chrome/Dolphin)",
-                "Parallel account processing"
+                "Parallel account processing",
+                "Target distribution system"
             ],
             "release_date": "2025-01-01"
         }
@@ -786,6 +829,12 @@ class Config:
         print("\n🌐 Браузери:")
         for browser, settings in cls.BROWSER_SETTINGS.items():
             print(f"  • {browser}: {'✅ Налаштовано' if settings else '❌'}")
+        
+        print("\n🎯 Розподіл таргетів:")
+        target_config = cls.get_target_distribution_config()
+        print(f"  • Увімкнено: {'✅' if target_config.get('enabled') else '❌'}")
+        print(f"  • Стратегія: {target_config.get('strategy', 'round_robin')}")
+        print(f"  • Уникнення дублікатів: {'✅' if target_config.get('avoid_duplicates') else '❌'}")
         
         print("\n🤖 Людяність:")
         print(f"  • Варіації швидкості друку: {'✅' if cls.HUMAN_BEHAVIOR['typing_variations'] else '❌'}")
