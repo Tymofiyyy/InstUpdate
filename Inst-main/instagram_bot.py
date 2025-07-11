@@ -17,10 +17,14 @@ class InstagramBot:
         self.username = username
         self.password = password
         self.proxy = proxy
-        self.browser_type = browser_type  # ✅ зберігаємо тип браузера
+        self.browser_type = browser_type.lower()  # ✅ зберігаємо тип браузера
         self.driver = None
         self.logged_in = False
         self.anti_detection = AntiDetection()
+        self.dolphin_manager = None
+        if self.browser_type == "dolphin anty":
+            from utils import DolphinAntyManager
+            self.dolphin_manager = DolphinAntyManager()
         self.setup_logging()
 
         
@@ -37,9 +41,14 @@ class InstagramBot:
         self.logger = logging.getLogger(f'InstagramBot_{self.username}')
         
     def setup_driver(self):
-        """Налаштування веб-драйвера з обходом детекції"""
-        chrome_options = Options()
+        """Налаштування веб-драйвера з обходом детекції або через Dolphin Anty"""
         
+        if self.browser_type == "dolphin anty":
+            return self.setup_dolphin_driver()  # Ти сам реалізовуєш цей метод
+
+        # --- Chrome WebDriver ---
+        chrome_options = Options()
+
         # Обхід детекції ботів
         chrome_options.add_argument('--disable-blink-features=AutomationControlled')
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
@@ -48,8 +57,8 @@ class InstagramBot:
         chrome_options.add_argument('--disable-plugins-discovery')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--no-sandbox')
-        
-        # Мобільна емуляція з актуальним User-Agent
+
+        # Мобільна емуляція з випадковим User-Agent
         mobile_emulation = {
             "deviceMetrics": {"width": 375, "height": 667, "pixelRatio": 3.0},
             "userAgent": random.choice([
@@ -58,19 +67,19 @@ class InstagramBot:
             ])
         }
         chrome_options.add_experimental_option("mobileEmulation", mobile_emulation)
-        
-        # Проксі
+
+        # Проксі (якщо є)
         if self.proxy:
             chrome_options.add_argument(f'--proxy-server={self.proxy}')
-            
-        # Headless — відключити для Instagram
-        if Config.HEADLESS:
-            chrome_options.add_argument('--headless')
 
-        # Запуск драйвера
+        # Headless (не рекомендується для Instagram)
+        if Config.HEADLESS:
+            chrome_options.add_argument('--headless=new')  # 'new' режим краще працює
+
+        # Ініціалізація Chrome WebDriver
         self.driver = webdriver.Chrome(options=chrome_options)
 
-        # Приховування webdriver через CDP
+        # Обхід виявлення webdriver через Chrome DevTools Protocol
         self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": """
                 Object.defineProperty(navigator, 'webdriver', {
@@ -79,9 +88,42 @@ class InstagramBot:
             """
         })
 
-        # Встановлення viewport
+        # Встановлення розміру вікна
         self.driver.set_window_size(375, 667)
 
+        return self.driver
+
+    def setup_dolphin_driver(self):
+        """Налаштування драйвера для Dolphin Anty"""
+        try:
+            # Створення або отримання профілю
+            profile_data = self.dolphin_manager.create_profile(self.username, self.proxy)
+            
+            if not profile_data:
+                raise Exception("Не вдалося створити профіль Dolphin")
+            
+            # Запуск профілю
+            automation_data = self.dolphin_manager.start_profile(self.username)
+            
+            if not automation_data:
+                raise Exception("Не вдалося запустити профіль Dolphin")
+            
+            # Підключення до WebDriver через Dolphin
+            from selenium import webdriver
+            from selenium.webdriver.chrome.options import Options
+            
+            options = Options()
+            options.add_experimental_option("debuggerAddress", automation_data['ws']['selenium'])
+            
+            self.driver = webdriver.Chrome(options=options)
+            self.logger.info(f"✅ Dolphin Anty профіль {self.username} запущено")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Помилка налаштування Dolphin: {e}")
+            return False
+        
         
     def human_like_delay(self, min_delay=1, max_delay=3):
         """Затримка з імітацією людської поведінки"""
@@ -229,7 +271,7 @@ class InstagramBot:
         except Exception as e:
             self.logger.error(f"Помилка при вході: {e}")
             return False
-            
+            close
     def detect_login_page_type(self):
         """Покращене визначення типу сторінки входу"""
         try:
@@ -1728,9 +1770,18 @@ class InstagramBot:
                 pass
             
     def close(self):
-     if hasattr(self, "driver") and self.driver:
-        self.driver.quit()
-        self.driver = None
+        """Закриття драйвера та профілю"""
+        if hasattr(self, "driver") and self.driver:
+            self.driver.quit()
+            self.driver = None
+        
+        # Закриття Dolphin профілю
+        if self.dolphin_manager and self.browser_type == "dolphin anty":
+            try:
+                self.dolphin_manager.stop_profile(self.username)
+                self.logger.info(f"🐬 Dolphin профіль {self.username} зупинено")
+            except Exception as e:
+                self.logger.error(f"Помилка закриття Dolphin профілю: {e}")
 
     def __del__(self):
      try:
