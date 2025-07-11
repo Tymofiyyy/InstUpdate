@@ -13,15 +13,16 @@ from config import Config
 from utils import AntiDetection
 
 class InstagramBot:
-    def __init__(self, username, password, proxy=None, browser_type="Chrome"):
+    def __init__(self, username, password, proxy=None, browser_type="chrome"):
         self.username = username
         self.password = password
         self.proxy = proxy
-        self.browser_type = browser_type  # Chrome або Dolphin Anty
+        self.browser_type = browser_type  # ✅ зберігаємо тип браузера
         self.driver = None
         self.logged_in = False
         self.anti_detection = AntiDetection()
         self.setup_logging()
+
         
     def setup_logging(self):
         """Налаштування логування"""
@@ -36,14 +37,7 @@ class InstagramBot:
         self.logger = logging.getLogger(f'InstagramBot_{self.username}')
         
     def setup_driver(self):
-        """Налаштування веб-драйвера з обходом детекції (Chrome або Dolphin)"""
-        if self.browser_type == "Dolphin Anty":
-            self.setup_dolphin_driver()
-        else:
-            self.setup_chrome_driver()
-            
-    def setup_chrome_driver(self):
-        """Налаштування Chrome драйвера"""
+        """Налаштування веб-драйвера з обходом детекції"""
         chrome_options = Options()
         
         # Обхід детекції ботів
@@ -55,10 +49,13 @@ class InstagramBot:
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--no-sandbox')
         
-        # Мобільна емуляція
+        # Мобільна емуляція з актуальним User-Agent
         mobile_emulation = {
             "deviceMetrics": {"width": 375, "height": 667, "pixelRatio": 3.0},
-            "userAgent": Config.USER_AGENTS[random.randint(0, len(Config.USER_AGENTS)-1)]
+            "userAgent": random.choice([
+                "Mozilla/5.0 (Linux; Android 13; Pixel 6 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
+                "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            ])
         }
         chrome_options.add_experimental_option("mobileEmulation", mobile_emulation)
         
@@ -66,187 +63,31 @@ class InstagramBot:
         if self.proxy:
             chrome_options.add_argument(f'--proxy-server={self.proxy}')
             
-        # Headless режим (опційно)
+        # Headless — відключити для Instagram
         if Config.HEADLESS:
             chrome_options.add_argument('--headless')
-            
+
+        # Запуск драйвера
         self.driver = webdriver.Chrome(options=chrome_options)
-        
-        # Приховування webdriver
-        self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        
+
+        # Приховування webdriver через CDP
+        self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                });
+            """
+        })
+
         # Встановлення viewport
         self.driver.set_window_size(375, 667)
-        
-    def setup_dolphin_driver(self):
-        """Налаштування Dolphin Anty драйвера"""
-        try:
-            import requests
-            from selenium.webdriver.chrome.service import Service
-            
-            # Dolphin Anty API endpoint
-            dolphin_api = "http://localhost:3001"
-            
-            # Створення нового профілю або використання існуючого
-            profile_data = {
-                "name": f"instagram_{self.username}",
-                "platform": "windows",
-                "browserType": "anty",
-                "mainWebsite": "instagram",
-                "useragent": Config.USER_AGENTS[random.randint(0, len(Config.USER_AGENTS)-1)],
-                "webrtc": {
-                    "mode": "altered",
-                    "ipAddress": ""
-                },
-                "canvas": {
-                    "mode": "noise"
-                },
-                "webgl": {
-                    "mode": "noise"
-                },
-                "clientRect": {
-                    "mode": "noise"
-                },
-                "notes": f"Instagram bot profile for {self.username}"
-            }
-            
-            if self.proxy:
-                proxy_parts = self.proxy.split(':')
-                profile_data["proxy"] = {
-                    "type": "http",
-                    "host": proxy_parts[0],
-                    "port": proxy_parts[1] if len(proxy_parts) > 1 else "8080",
-                    "login": proxy_parts[2] if len(proxy_parts) > 2 else "",
-                    "password": proxy_parts[3] if len(proxy_parts) > 3 else ""
-                }
-            
-            # Запуск браузера через Dolphin API
-            response = requests.post(
-                f"{dolphin_api}/browser_profiles/start",
-                json={"profileId": profile_data["name"], "automation": True}
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                port = data.get("automation", {}).get("port", 9222)
-                
-                # Підключення до запущеного браузера
-                chrome_options = Options()
-                chrome_options.debugger_address = f"127.0.0.1:{port}"
-                
-                # Мобільна емуляція для Dolphin
-                chrome_options.add_experimental_option("mobileEmulation", {
-                    "deviceMetrics": {"width": 375, "height": 667, "pixelRatio": 3.0},
-                    "userAgent": profile_data["useragent"]
-                })
-                
-                self.driver = webdriver.Chrome(options=chrome_options)
-                self.logger.info(f"✅ Connected to Dolphin Anty browser on port {port}")
-                
-            else:
-                self.logger.warning("⚠️ Dolphin Anty not available, falling back to Chrome")
-                self.setup_chrome_driver()
-                
-        except Exception as e:
-            self.logger.error(f"❌ Error setting up Dolphin: {e}")
-            self.logger.info("📌 Falling back to Chrome browser")
-            self.setup_chrome_driver()
+
         
     def human_like_delay(self, min_delay=1, max_delay=3):
         """Затримка з імітацією людської поведінки"""
-        # Додаємо варіативність до затримок
-        base_delay = random.uniform(min_delay, max_delay)
+        delay = random.uniform(min_delay, max_delay)
+        time.sleep(delay)
         
-        # Іноді робимо довші паузи (людина може відволіктися)
-        if random.random() < 0.1:  # 10% шанс довгої паузи
-            base_delay += random.uniform(2, 5)
-            self.logger.debug(f"💤 Довга пауза: {base_delay:.2f} сек (людина відволіклася)")
-        
-        # Додаємо мікро-паузи для більшої людяності
-        if random.random() < 0.3:  # 30% шанс мікро-паузи
-            micro_pause = random.uniform(0.1, 0.5)
-            time.sleep(micro_pause)
-            base_delay -= micro_pause
-            
-        time.sleep(base_delay)
-        
-    def human_story_reply(self, element, text):
-        """Людяне введення відповіді на сторіс з реалістичними паузами"""
-        try:
-            # Спочатку клікаємо на поле для фокусу
-            element.click()
-            time.sleep(random.uniform(0.3, 0.8))  # Пауза після кліку
-            
-            # Очищуємо поле
-            element.clear()
-            time.sleep(random.uniform(0.2, 0.5))
-            
-            # Імітуємо "роздуми" перед початком введення
-            thinking_pause = random.uniform(1.5, 3.5)
-            self.logger.debug(f"🤔 Думаємо {thinking_pause:.1f} сек перед відповіддю...")
-            time.sleep(thinking_pause)
-            
-            # Розбиваємо текст на слова для більш природного введення
-            words = text.split()
-            
-            for i, word in enumerate(words):
-                # Введення слова по літерах
-                for char in word:
-                    element.send_keys(char)
-                    
-                    # Варіативна швидкість друку
-                    if char in '.,!?;:':  # Пауза після розділових знаків
-                        time.sleep(random.uniform(0.2, 0.4))
-                    elif char.isupper():  # Трохи довше для великих літер
-                        time.sleep(random.uniform(0.1, 0.2))
-                    else:  # Звичайні літери
-                        time.sleep(random.uniform(0.05, 0.15))
-                    
-                    # Іноді робимо помилки та виправляємо
-                    if random.random() < 0.03:  # 3% шанс помилки
-                        wrong_char = random.choice('asdfghjkl')
-                        element.send_keys(wrong_char)
-                        time.sleep(random.uniform(0.1, 0.3))
-                        element.send_keys(Keys.BACKSPACE)
-                        time.sleep(random.uniform(0.1, 0.2))
-                
-                # Пробіл після слова (крім останнього)
-                if i < len(words) - 1:
-                    element.send_keys(' ')
-                    time.sleep(random.uniform(0.05, 0.15))
-                    
-                    # Іноді робимо паузи між словами (людина думає)
-                    if random.random() < 0.15:  # 15% шанс паузи
-                        pause = random.uniform(0.5, 1.5)
-                        self.logger.debug(f"💭 Мікро-пауза {pause:.1f} сек")
-                        time.sleep(pause)
-            
-            # Фінальна пауза перед відправкою (перечитуємо повідомлення)
-            final_pause = random.uniform(0.8, 2.0)
-            self.logger.debug(f"👀 Перечитуємо {final_pause:.1f} сек перед відправкою")
-            time.sleep(final_pause)
-            
-            # Іноді додаємо емодзі в кінці
-            if '!' in text or '?' in text or random.random() < 0.2:
-                if random.random() < 0.3:  # 30% шанс додати емодзі
-                    space_pause = random.uniform(0.2, 0.5)
-                    time.sleep(space_pause)
-                    element.send_keys(' ')
-                    time.sleep(random.uniform(0.3, 0.7))
-                    # Вибираємо випадкове емодзі з контексту
-                    context_emojis = ['😊', '😄', '👍', '❤️', '🔥', '✨', '💫', '🙌']
-                    emoji = random.choice(context_emojis)
-                    element.send_keys(emoji)
-                    time.sleep(random.uniform(0.2, 0.5))
-            
-            self.logger.debug(f"✅ Людяне введення завершено: {text}")
-            return True
-            
-        except Exception as e:
-            self.logger.debug(f"Помилка людяного введення: {e}")
-            # Fallback на швидке введення
-            return self.fast_typing(element, text)
-            
     def fast_typing(self, element, text):
         """Швидке введення тексту для повідомлень з підтримкою багаторядкових повідомлень"""
         try:
@@ -793,12 +634,32 @@ class InstagramBot:
                     self.logger.info(f"URL змінився на: {current_url}")
                     
                     if "challenge" in current_url:
-                        self.logger.warning("Потрібно пройти challenge")
-                        return False
+                        self.logger.warning("Потрібно пройти challenge вручну в браузері...")
+                        try:
+                            WebDriverWait(self.driver, 300).until(
+                                lambda d: "challenge" not in d.current_url and "login" not in d.current_url
+                            )
+                            self.logger.info("Challenge пройдено вручну")
+                            self.handle_post_login_dialogs()
+                            self.logged_in = True
+                            return True
+                        except:
+                            self.logger.error("Challenge не пройдено вчасно")
+                            return False
                     
                     if "two_factor" in current_url or "2fa" in current_url:
-                        self.logger.warning("Потрібна двофакторна автентифікація")
-                        return False
+                        self.logger.warning("Потрібна двофакторна автентифікація. Введіть код вручну...")
+                        try:
+                            WebDriverWait(self.driver, 180).until(
+                                lambda d: "two_factor" not in d.current_url and "login" not in d.current_url
+                            )
+                            self.logger.info("2FA пройдено вручну")
+                            self.handle_post_login_dialogs()
+                            self.logged_in = True
+                            return True
+                        except:
+                            self.logger.error("2FA не пройдено вчасно")
+                            return False
                         
                     # Успішний вхід
                     self.handle_post_login_dialogs()
@@ -813,6 +674,10 @@ class InstagramBot:
                     "div[data-testid='login-error']",
                     "p[data-testid='login-error-message']",
                     "div[id*='error']",
+                    "div[class*='error']", 
+                    "div[class*='Alert']", 
+                    "div[class*='-message']", 
+                    "span[class*='error']",
                     "span[data-testid='login-error-message']"
                 ]
                 
@@ -1064,615 +929,115 @@ class InstagramBot:
             return False
 
     def process_story(self, target_username, messages):
-        """Обробка сторіс: прямий перехід на профіль → аватарка → швидкий лайк → швидка відповідь"""
-        try:
-            # 1. Прямий перехід на профіль цільового користувача
-            profile_url = f"https://www.instagram.com/{target_username}/"
-            self.driver.get(profile_url)
-            self.logger.info(f"📍 Прямий перехід на профіль {target_username}")
-            self.human_like_delay(2, 3)
+     """Перехід на сторіс → лайк → відповідь → закриття"""
+     try:
+        self.driver.get(f"https://www.instagram.com/{target_username}/")
+        self.logger.info(f"📍 Перехід на профіль {target_username}")
+        self.human_like_delay(2, 3)
 
-            # 2. Пошук аватара зі сторіс (має border/рамку)
-            story_avatar_selectors = [
-                "button canvas[style*='border']",  # Кнопка з обведенням
-                "div[style*='border'] button",     # Кнопка в обведеному контейнері
-                "img[style*='border']",            # Аватар з рамкою
-                "button[aria-label*='story']",     # Кнопка з підписом "story"
-                "div[role='button'][tabindex='0']" # Альтернативний варіант
-            ]
-            
-            story_avatar = None
-            for selector in story_avatar_selectors:
-                try:
-                    elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                    for element in elements:
-                        if element.is_displayed():
-                            story_avatar = element
-                            self.logger.info(f"📱 Знайдено аватар зі сторіс: {selector}")
-                            break
-                    if story_avatar:
-                        break
-                except Exception as e:
-                    self.logger.debug(f"Помилка пошуку сторіс через селектор {selector}: {e}")
-                    continue
-            
-            if not story_avatar:
-                self.logger.info(f"📭 Активних сторіс у {target_username} не знайдено")
-                return False
-                
-            # Відкриття сторіс
-            self.logger.info(f"🎬 Відкриття сторіс {target_username}")
+        # === ЗНАХОДИМО СТОРІС-АВАТАР ===
+        avatar = None
+        for selector in [
+            "button canvas[style*='border']",
+            "div[style*='border'] button",
+            "img[style*='border']",
+            "button[aria-label*='story']",
+            "div[role='button'][tabindex='0']"
+        ]:
             try:
-                story_avatar.click()
+                avatar = self.driver.find_element(By.CSS_SELECTOR, selector)
+                if avatar.is_displayed():
+                    avatar.click()
+                    self.logger.info("📸 Сторіс відкрита")
+                    break
             except:
-                self.driver.execute_script("arguments[0].click();", story_avatar)
-            self.human_like_delay(1, 2)
+                continue
+        if not avatar:
+            self.logger.info("📭 Немає активної сторіс")
+            return False
+        self.human_like_delay(1, 2)
 
-            story_actions_completed = 0
+        # === ЛАЙК ===
+        liked = False
+        for selector in [
+            "svg[aria-label='Like']",
+            "svg[aria-label='Подобається']",
+            "button[aria-label*='Like']"
+        ]:
+            try:
+                like = WebDriverWait(self.driver, 3).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, selector)))
+                if 'Unlike' not in (like.get_attribute('aria-label') or ''):
+                    like.click()
+                    self.logger.info("❤️ Лайк поставлено")
+                    liked = True
+                    break
+            except:
+                continue
 
-            # Лайк сторіс (якщо увімкнено)
-            if actions_config.get('like_stories', True):
-                story_liked = False
-                like_selectors = [
-                    "svg[aria-label='Like']",
-                    "svg[aria-label='Подобається']",
-                    "button[aria-label*='Like']",
-                    "span[role='button'] svg[aria-label*='Like']"
-                ]
-                
-                for selector in like_selectors:
+        # === ВІДПОВІДЬ ===
+        replied = False
+        for selector in [
+            "textarea[placeholder*='Send']",
+            "textarea[placeholder*='Reply']",
+            "div[contenteditable='true'][aria-label*='Message']",
+            "textarea[placeholder*='Надіслати']"
+        ]:
+            try:
+                reply_input = WebDriverWait(self.driver, 3).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, selector)))
+                msg = random.choice(messages)
+
+                # ⚠️ Імітуємо реальне введення — активує Send
+                self.driver.execute_script("""
+                    const input = arguments[0];
+                    const text = arguments[1];
+                    input.focus();
+                    input.value = text;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'a' }));
+                    input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: 'a' }));
+                """, reply_input, msg)
+                self.logger.info(f"💬 Введено повідомлення: {msg}")
+
+                # === ПОШУК SEND ===
+                sent = False
+                parent = reply_input.find_element(By.XPATH, "./..")
+                for xpath in [
+                    ".//button[contains(@aria-label, 'Send')]",
+                    ".//button[contains(@type, 'submit')]",
+                    ".//div[@role='button'][.//*[name()='svg']]"
+                ]:
                     try:
-                        like_button = WebDriverWait(self.driver, 3).until(
-                            EC.presence_of_element_located((By.CSS_SELECTOR, selector))
-                        )
-                        if 'Unlike' not in (like_button.get_attribute('aria-label') or ''):
-                            like_button.click()
-                            story_liked = True
-                            story_actions_completed += 1
-                            self.logger.info("❤️ Поставлено лайк сторіс")
+                        send_btn = parent.find_element(By.XPATH, xpath)
+                        if send_btn.is_displayed():
+                            send_btn.click()
+                            self.logger.info("📤 Натиснуто кнопку Send")
+                            sent = True
                             break
                     except:
                         continue
+                if not sent:
+                    self.logger.warning("⚠️ Кнопка Send не знайдена")
+                replied = sent
+                break
+            except Exception as e:
+                self.logger.debug(f"❌ Відповідь не вдалася: {e}")
+                continue
 
-                if not story_liked:
-                    self.logger.warning("⚠️ Не вдалося поставити лайк сторіс")
-
-            # Відповідь на сторіс (якщо увімкнено)
-            if actions_config.get('reply_stories', True):
-                story_replied = False
-                reply_selectors = [
-                    "textarea[placeholder*='Send message']",
-                    "textarea[placeholder*='Reply']",
-                    "div[contenteditable='true'][aria-label*='Message']",
-                    "textarea[placeholder*='Надіслати повідомлення']"
-                ]
-                
-                for selector in reply_selectors:
-                    try:
-                        reply_input = WebDriverWait(self.driver, 3).until(
-                            EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
-                        )
-                        message = random.choice(messages)
-                        reply_input.clear()
-                        
-                        # ШВИДКЕ введення повідомлення для сторіс
-                        self.fast_typing(reply_input, message)
-                        self.logger.info(f"💬 Введено відповідь: {message}")
-                        
-                        # Пошук кнопки Send (знаходиться справа від поля вводу) - ОРИГІНАЛЬНА ЛОГІКА
-                        send_button_found = False
-                        
-                        # Спочатку шукаємо кнопку відносно поля вводу
-                        try:
-                            # Знаходимо батьківський контейнер поля вводу
-                            parent_container = reply_input.find_element(By.XPATH, "./..")
-                            
-                            # Шукаємо кнопку Send в тому ж контейнері
-                            send_selectors_relative = [
-                                ".//button[contains(@aria-label, 'Send')]",
-                                ".//button[contains(@aria-label, 'Надіслати')]",
-                                ".//div[@role='button'][contains(@tabindex, '0')]//svg",
-                                ".//button[contains(@type, 'submit')]",
-                                ".//button[.//*[name()='svg']]"
-                            ]
-                            
-                            for selector in send_selectors_relative:
-                                try:
-                                    send_button = parent_container.find_element(By.XPATH, selector)
-                                    if send_button.is_displayed():
-                                        send_button.click()
-                                        send_button_found = True
-                                        self.logger.info("📤 Натиснуто кнопку Send (відносний пошук)")
-                                        break
-                                except:
-                                    continue
-                                    
-                        except Exception as e:
-                            self.logger.debug(f"Помилка відносного пошуку: {e}")
-                        
-                        # Якщо відносний пошук не спрацював, шукаємо глобально
-                        if not send_button_found:
-                            send_selectors = [
-                                "button[aria-label*='Send']",
-                                "button[aria-label*='Надіслати']",
-                                "div[role='button'][tabindex='0'] svg[aria-label*='Send']",
-                                "div[role='button'][tabindex='0'] svg[aria-label*='Надіслати']",
-                                "button[type='submit']",
-                                "svg[aria-label*='Send']",
-                                "svg[aria-label*='Надіслати']",
-                                "button:has(svg[aria-label*='Send'])",
-                                "button:has(svg[aria-label*='Надіслати'])",
-                                # Додаткові селектори для кнопки Send
-                                "button svg[viewBox*='24'][fill*='#']",  # Типова іконка відправки
-                                "div[role='button'] svg[d*='M1.101']",   # Специфічна іконка Send Instagram
-                                "button[style*='cursor: pointer']",      # Активна кнопка
-                            ]
-                            
-                            for send_selector in send_selectors:
-                                try:
-                                    send_button = WebDriverWait(self.driver, 2).until(
-                                        EC.element_to_be_clickable((By.CSS_SELECTOR, send_selector))
-                                    )
-                                    if send_button.is_displayed():
-                                        send_button.click()
-                                        send_button_found = True
-                                        self.logger.info("📤 Натиснуто кнопку Send (глобальний пошук)")
-                                        break
-                                except:
-                                    continue
-                        
-                        # Якщо кнопка Send не знайдена, шукаємо наступний елемент після поля вводу
-                        if not send_button_found:
-                            try:
-                                # Шукаємо наступний сусідній елемент
-                                next_sibling = reply_input.find_element(By.XPATH, "./following-sibling::*[1]")
-                                if next_sibling.tag_name in ['button', 'div'] and next_sibling.is_displayed():
-                                    next_sibling.click()
-                                    send_button_found = True
-                                    self.logger.info("📤 Натиснуто сусідній елемент (кнопка Send)")
-                            except:
-                                pass
-                        
-                        # Останній варіант - Ctrl+Enter для відправки
-                        if not send_button_found:
-                            reply_input.send_keys(Keys.TAB + Keys.RETURN)
-                            self.logger.info("📤 Відправлено через Ctrl+Enter")
-                        
-                        story_replied = True
-                        story_actions_completed += 1
-                        self.logger.info(f"✅ Відправлено відповідь на сторіс: {message}")
-                        break
-                        
-                    except Exception as e:
-                        continue
-
-                if not story_replied:
-                    self.logger.warning("⚠️ Не вдалося відправити відповідь на сторіс")
-
-            # Закриття сторіс
-            close_selectors = [
-                "svg[aria-label='Close']",
-                "button[aria-label='Close']",
-                "div[role='button'][tabindex='0']"
-            ]
-            
-            for selector in close_selectors:
-                try:
-                    close_button = self.driver.find_element(By.CSS_SELECTOR, selector)
-                    close_button.click()
-                    self.logger.info("🚪 Сторіс закрита")
-                    break
-                except:
-                    continue
-            else:
-                ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
-                self.logger.info("🚪 Сторіс закрита через ESC")
-
-            return story_actions_completed > 0
-
-        except Exception as e:
-            self.logger.error(f"❌ Помилка при обробці сторіс: {str(e)}")
-            return False
-            
-    # Підтримка старого API для зворотної сумісності
-    def run_automation(self, target_username, messages):
-        """Запуск автоматизації з оптимізованою логікою (старий API)"""
+        # === ЗАКРИТТЯ СТОРІС ===
         try:
-            # Якщо передано один користувач як рядок
-            if isinstance(target_username, str) and ',' not in target_username and ';' not in target_username and '\n' not in target_username:
-                self.logger.info(f"🚀 Початок автоматизації для {target_username}")
-                
-                # Вхід в систему
-                if not self.login():
-                    self.logger.error("❌ Помилка входу в систему")
-                    return False
-                
-                # Виконуємо для одного користувача
-                return self.run_single_user_automation(target_username, messages)
-            else:
-                # Якщо передано багато користувачів, використовуємо новий метод  
-                return self.run_automation_multiple_users(target_username, messages)
-                
-        except Exception as e:
-            self.logger.error(f"❌ Критична помилка при автоматизації: {e}")
-            return False
-        finally:
-            # Завершальні дії
-            try:
-                self.logger.info("🔚 Завершення сесії...")
-                self.human_like_delay(2, 5)
-            except:
-                pass
-            
-    def close(self):
-        """Закриття бота"""
-        if self.driver:
-            self.driver.quit()
-            self.driver = None
-            
-    def __del__(self):
-        self.close()
+            self.driver.find_element(By.CSS_SELECTOR, "svg[aria-label='Close']").click()
+        except:
+            ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+        self.logger.info("🚪 Сторіс закрита")
 
+        return liked or replied
 
-# Приклад використання з багатьма користувачами
-if __name__ == "__main__":
-    # Налаштування для роботи
-    USERNAME = "your_username"
-    PASSWORD = "your_password"
-    
-    # === ПРИКЛАДИ РІЗНИХ СПОСОБІВ ВВЕДЕННЯ КОРИСТУВАЧІВ ===
-    
-    # Варіант 1: Один користувач (старий спосіб)
-    SINGLE_USER = "target_username"
-    
-    # Варіант 2: Багато користувачів через кому
-    MULTIPLE_USERS_COMMA = "user1, user2, user3, user4, user5"
-    
-    # Варіант 3: Багато користувачів через крапку з комою
-    MULTIPLE_USERS_SEMICOLON = "user1; user2; user3; user4; user5"
-    
-    # Варіант 4: Багато користувачів кожен з нового рядка
-    MULTIPLE_USERS_NEWLINE = """user1
-user2
-user3
-user4
-user5"""
-    
-    # Варіант 5: Багато користувачів через пробіл
-    MULTIPLE_USERS_SPACE = "user1 user2 user3 user4 user5"
-    
-    # Варіант 6: З символами @ (будуть видалені автоматично)
-    MULTIPLE_USERS_AT = "@user1, @user2, @user3, @user4, @user5"
-    
-    # Виберіть потрібний варіант
-    TARGET_USERS = MULTIPLE_USERS_COMMA  # Змініть на потрібний варіант
-    
-    MESSAGES = [
-        "Привіт! Як справи? 😊",
-        "Гарний пост! 👍",
-        "Дякую за цікавий контент! 🙏",
-        "Супер фото! 📸",
-        "Вітаю! 🎉",
-        "Класно! 🔥",
-        "Дуже круто! ⭐",
-        "Чудово! 💫",
-        # Багаторядкові повідомлення з гарним форматуванням:
-        """Привіт! 😊
-Дуже сподобався твій пост!
-Продовжуй у тому ж дусі! 👍""",
-        
-        """Класний контент! 🔥
-Чекаю на нові пости
-Так тримати! ⭐""",
-        
-        """Wow! Amazing content! 🤩
-Keep up the great work
-Looking forward to more! 💯""",
-        
-        """Супер! 
-Дуже цікаво! 
-Дякую за натхнення! ✨"""
-    ]
-    
-    # Створення та запуск бота
-    bot = InstagramBot(USERNAME, PASSWORD)
-    
-    try:
-        print("🚀 Instagram Bot з БАГАТОКОРИСТУВАЦЬКОЮ підтримкою")
-        print("=" * 60)
-        print("📋 Можливості:")
-        print("✅ Один користувач: просто вкажіть ім'я")
-        print("✅ Багато користувачів: через кому, крапку з комою, пробіл або новий рядок")
-        print("✅ Автоматичне видалення символів @ з імен")
-        print("✅ Послідовна обробка: користувач1 (всі дії) → користувач2 (всі дії) → ...")
-        print("✅ Детальні логи для кожного користувача")
-        print("✅ Безпечні затримки між користувачами")
-        print("=" * 60)
-        print("📋 План дій для кожного користувача:")
-        print("1. 📸 Лайк постів: профіль → пост1 → лайк → назад → пост2 → лайк → назад")
-        print("2. 📱 Сторіс: на профілі натиснути аватарку → лайк → відповідь")
-        print("3. 💬 Fallback: якщо сторіс немає → Direct Messages → Next → повідомлення")
-        print("=" * 60)
-        
-        # Запуск автоматизації
-        success = bot.run_automation(TARGET_USERS, MESSAGES)
-        
-        print("=" * 60)
-        if success:
-            print("🎉 Багатокористувацька автоматизація завершена! Перевірте деталі в логах.")
-        else:
-            print("❌ Автоматизація завершена з помилками!")
-        print("=" * 60)
-            
-    except KeyboardInterrupt:
-        print("\n⚠️ Автоматизацію перервано користувачем")
-        
-    except Exception as e:
-        print(f"❌ Помилка при запуску бота: {e}")
-        
-    finally:
-        bot.close()
-        print("🔚 Бот закрито")ар зі сторіс: {selector}")
-                            break
-                    if story_avatar:
-                        break
-                except Exception as e:
-                    self.logger.debug(f"Помилка пошуку сторіс через селектор {selector}: {e}")
-                    continue
-            
-            if not story_avatar:
-                self.logger.info(f"📭 Активних сторіс у {target_username} не знайдено")
-                return False
-                
-            # 3. Відкриття сторіс
-            self.logger.info(f"🎬 Відкриття сторіс {target_username}")
-            try:
-                story_avatar.click()
-            except:
-                self.driver.execute_script("arguments[0].click();", story_avatar)
-            self.human_like_delay(1, 2)  # Зменшено затримку
+     except Exception as e:
+        self.logger.error(f"❌ Помилка: {e}")
+        return False
 
-            # 4. ШВИДКИЙ лайк сторіс (одразу після відкриття)
-            story_liked = False
-            like_selectors = [
-                "svg[aria-label='Like']",
-                "svg[aria-label='Подобається']",
-                "button[aria-label*='Like']",
-                "span[role='button'] svg[aria-label*='Like']"
-            ]
-            
-            for selector in like_selectors:
-                try:
-                    like_button = WebDriverWait(self.driver, 3).until(  # Зменшено час очікування
-                        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
-                    )
-                    if 'Unlike' not in (like_button.get_attribute('aria-label') or ''):
-                        like_button.click()
-                        story_liked = True
-                        self.logger.info("❤️ Поставлено лайк сторіс")
-                        break
-                except:
-                    continue
-
-            if not story_liked:
-                self.logger.warning("⚠️ Не вдалося поставити лайк сторіс")
-
-            # 5. ШВИДКА відповідь на сторіс (одразу після лайку)
-            story_replied = False
-            reply_selectors = [
-                "textarea[placeholder*='Send message']",
-                "textarea[placeholder*='Reply']",
-                "div[contenteditable='true'][aria-label*='Message']",
-                "textarea[placeholder*='Надіслати повідомлення']"
-            ]
-            
-            for selector in reply_selectors:
-                try:
-                    reply_input = WebDriverWait(self.driver, 3).until(  # Зменшено час очікування
-                        EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
-                    )
-                    message = random.choice(messages)
-                    reply_input.clear()
-                    
-                    # Використовуємо ЛЮДЯНЕ введення для сторіс
-                    self.logger.info(f"💬 Починаємо людяну відповідь на сторіс...")
-                    self.human_story_reply(reply_input, message)
-                    self.logger.info(f"✅ Введено відповідь: {message}")
-                    
-                    # ПОКРАЩЕНИЙ ПОШУК КНОПКИ SEND - СПРАВА ВІД ПОЛЯ ВВЕДЕННЯ
-                    send_button_found = False
-                    
-                    # Метод 1: Пошук наступного елемента справа (сусідній елемент)
-                    try:
-                        # Знаходимо батьківський контейнер поля введення
-                        parent_container = reply_input.find_element(By.XPATH, "./parent::*")
-                        
-                        # Шукаємо всі дочірні елементи контейнера
-                        children = parent_container.find_elements(By.XPATH, "./*")
-                        
-                        # Знаходимо індекс поля введення
-                        input_index = -1
-                        for i, child in enumerate(children):
-                            try:
-                                if child == reply_input or child.find_element(By.XPATH, ".//textarea") == reply_input:
-                                    input_index = i
-                                    break
-                            except:
-                                continue
-                        
-                        # Якщо знайшли поле введення, беремо наступний елемент
-                        if input_index != -1 and input_index < len(children) - 1:
-                            next_element = children[input_index + 1]
-                            
-                            # Перевіряємо чи це кнопка або містить кнопку
-                            if next_element.tag_name in ['button', 'div']:
-                                # Клікаємо по елементу або шукаємо кнопку всередині
-                                try:
-                                    # Спочатку пробуємо знайти SVG всередині
-                                    svg_button = next_element.find_element(By.XPATH, ".//svg")
-                                    svg_button.click()
-                                    send_button_found = True
-                                    self.logger.info("📤 Натиснуто SVG кнопку Send (справа від поля)")
-                                except:
-                                    # Якщо SVG не знайдено, клікаємо по самому елементу
-                                    next_element.click()
-                                    send_button_found = True
-                                    self.logger.info("📤 Натиснуто елемент Send (справа від поля)")
-                                    
-                    except Exception as e:
-                        self.logger.debug(f"Помилка пошуку сусіднього елемента: {e}")
-                    
-                    # Метод 2: Пошук кнопки в тому ж рядку через following-sibling
-                    if not send_button_found:
-                        try:
-                            # Шукаємо наступні елементи на тому ж рівні
-                            send_elements = reply_input.find_elements(By.XPATH, 
-                                "./following-sibling::*[contains(@role, 'button') or name()='button']")
-                            
-                            for element in send_elements:
-                                if element.is_displayed():
-                                    element.click()
-                                    send_button_found = True
-                                    self.logger.info("📤 Натиснуто кнопку Send (following-sibling)")
-                                    break
-                                    
-                        except Exception as e:
-                            self.logger.debug(f"Помилка following-sibling: {e}")
-                    
-                    # Метод 3: Пошук через координати (кнопка праворуч)
-                    if not send_button_found:
-                        try:
-                            # Отримуємо координати поля введення
-                            input_location = reply_input.location
-                            input_size = reply_input.size
-                            
-                            # Шукаємо елементи праворуч від поля
-                            all_buttons = self.driver.find_elements(By.CSS_SELECTOR, 
-                                "button, div[role='button'], svg")
-                            
-                            for button in all_buttons:
-                                try:
-                                    btn_location = button.location
-                                    # Перевіряємо чи кнопка праворуч і на тому ж рівні
-                                    if (btn_location['x'] > input_location['x'] + input_size['width'] - 10 and
-                                        abs(btn_location['y'] - input_location['y']) < 20 and
-                                        button.is_displayed()):
-                                        button.click()
-                                        send_button_found = True
-                                        self.logger.info("📤 Натиснуто кнопку Send (по координатах)")
-                                        break
-                                except:
-                                    continue
-                                    
-                        except Exception as e:
-                            self.logger.debug(f"Помилка пошуку по координатах: {e}")
-                    
-                    # Метод 4: JavaScript пошук найближчої кнопки
-                    if not send_button_found:
-                        try:
-                            # JavaScript для пошуку кнопки праворуч
-                            js_code = """
-                                var input = arguments[0];
-                                var inputRect = input.getBoundingClientRect();
-                                var buttons = document.querySelectorAll('button, div[role="button"], svg');
-                                var rightButton = null;
-                                var minDistance = Infinity;
-                                
-                                for (var i = 0; i < buttons.length; i++) {
-                                    var btn = buttons[i];
-                                    var btnRect = btn.getBoundingClientRect();
-                                    
-                                    // Перевіряємо чи кнопка праворуч і близько
-                                    if (btnRect.left > inputRect.right - 10 &&
-                                        Math.abs(btnRect.top - inputRect.top) < 30) {
-                                        var distance = btnRect.left - inputRect.right;
-                                        if (distance < minDistance && distance < 100) {
-                                            minDistance = distance;
-                                            rightButton = btn;
-                                        }
-                                    }
-                                }
-                                
-                                if (rightButton) {
-                                    rightButton.click();
-                                    return true;
-                                }
-                                return false;
-                            """
-                            
-                            result = self.driver.execute_script(js_code, reply_input)
-                            if result:
-                                send_button_found = True
-                                self.logger.info("📤 Натиснуто кнопку Send (JavaScript)")
-                                
-                        except Exception as e:
-                            self.logger.debug(f"Помилка JavaScript пошуку: {e}")
-                    
-                    # Метод 5: Глобальний пошук як fallback
-                    if not send_button_found:
-                        send_selectors = [
-                            "button[aria-label*='Send']",
-                            "button[aria-label*='Надіслати']",
-                            "div[role='button'] svg[aria-label*='Send']",
-                            "button[type='submit']",
-                            "button:has(svg[viewBox*='24'])"  # Типова іконка відправки
-                        ]
-                        
-                        for selector in send_selectors:
-                            try:
-                                send_btn = WebDriverWait(self.driver, 2).until(
-                                    EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
-                                )
-                                if send_btn.is_displayed():
-                                    send_btn.click()
-                                    send_button_found = True
-                                    self.logger.info("📤 Натиснуто кнопку Send (глобальний пошук)")
-                                    break
-                            except:
-                                continue
-                    
-                    # Останній варіант - Enter
-                    if not send_button_found:
-                        reply_input.send_keys(Keys.RETURN)
-                        self.logger.info("📤 Відправлено через Enter (кнопка не знайдена)")
-                    
-                    story_replied = True
-                    self.logger.info(f"✅ Відправлено відповідь на сторіс: {message}")
-                    self.human_like_delay(1, 2)  # Коротка затримка після відправки
-                    break
-                    
-                except Exception as e:
-                    self.logger.debug(f"Помилка при відправці відповіді через селектор {selector}: {e}")
-                    continue
-
-            if not story_replied:
-                self.logger.warning("⚠️ Не вдалося відправити відповідь на сторіс")
-
-            # 6. Закриття сторіс
-            close_selectors = [
-                "svg[aria-label='Close']",
-                "button[aria-label='Close']",
-                "div[role='button'][tabindex='0']"
-            ]
-            
-            for selector in close_selectors:
-                try:
-                    close_button = self.driver.find_element(By.CSS_SELECTOR, selector)
-                    close_button.click()
-                    self.logger.info("🚪 Сторіс закрита")
-                    break
-                except:
-                    continue
-            else:
-                ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
-                self.logger.info("🚪 Сторіс закрита через ESC")
-
-            return story_liked or story_replied
-
-        except Exception as e:
-            self.logger.error(f"❌ Помилка при обробці сторіс: {str(e)}")
-            return False
-    
 
     def _close_story(self):
         """Універсальне закриття сторіс"""
@@ -2028,94 +1393,6 @@ Looking forward to more! 💯""",
         except Exception as e:
             self.logger.error(f"❌ Критична помилка при багатокористувацькій автоматизації: {e}")
             return False
-            
-    # === НОВИЙ МЕТОД: ПАРАЛЕЛЬНА АВТОМАТИЗАЦІЯ ===
-    def run_parallel_automation(self, accounts_data, target_users_input, messages, actions_config=None, max_parallel=5):
-        """Запуск паралельної автоматизації для кількох акаунтів"""
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-        import threading
-        
-        self.logger.info(f"🚀 Запуск ПАРАЛЕЛЬНОЇ автоматизації для {len(accounts_data)} акаунтів")
-        
-        # Обмеження кількості паралельних акаунтів
-        if len(accounts_data) > max_parallel:
-            self.logger.warning(f"⚠️ Обмеження: максимум {max_parallel} паралельних акаунтів")
-            accounts_data = accounts_data[:max_parallel]
-        
-        results = {}
-        
-        def run_account(account_info):
-            """Функція для запуску одного акаунта в окремому потоці"""
-            username = account_info['username']
-            password = account_info['password']
-            proxy = account_info.get('proxy')
-            
-            try:
-                # Створюємо новий екземпляр бота для кожного акаунта
-                bot = InstagramBot(username, password, proxy, self.browser_type)
-                
-                # Запускаємо автоматизацію
-                success = bot.run_automation_multiple_users(target_users_input, messages, actions_config)
-                
-                # Закриваємо браузер
-                bot.close()
-                
-                return {
-                    'username': username,
-                    'success': success,
-                    'error': None
-                }
-                
-            except Exception as e:
-                return {
-                    'username': username,
-                    'success': False,
-                    'error': str(e)
-                }
-        
-        # Використовуємо ThreadPoolExecutor для паралельного запуску
-        with ThreadPoolExecutor(max_workers=max_parallel) as executor:
-            # Запускаємо всі акаунти
-            future_to_account = {
-                executor.submit(run_account, account): account 
-                for account in accounts_data
-            }
-            
-            # Обробляємо результати по мірі завершення
-            for future in as_completed(future_to_account):
-                account = future_to_account[future]
-                try:
-                    result = future.result()
-                    results[result['username']] = result
-                    
-                    if result['success']:
-                        self.logger.info(f"✅ Акаунт {result['username']} завершив роботу успішно")
-                    else:
-                        self.logger.error(f"❌ Акаунт {result['username']} завершив з помилкою: {result['error']}")
-                        
-                except Exception as e:
-                    self.logger.error(f"❌ Критична помилка для акаунта {account['username']}: {e}")
-                    results[account['username']] = {
-                        'username': account['username'],
-                        'success': False,
-                        'error': str(e)
-                    }
-        
-        # Підсумок паралельної роботи
-        successful = sum(1 for r in results.values() if r['success'])
-        total = len(results)
-        
-        self.logger.info("")
-        self.logger.info("=" * 60)
-        self.logger.info("📊 ПІДСУМОК ПАРАЛЕЛЬНОЇ АВТОМАТИЗАЦІЇ")
-        self.logger.info("=" * 60)
-        self.logger.info(f"👥 Всього акаунтів: {total}")
-        self.logger.info(f"✅ Успішно: {successful}")
-        self.logger.info(f"❌ З помилками: {total - successful}")
-        self.logger.info(f"📈 Успішність: {(successful/total*100):.1f}%")
-        self.logger.info("=" * 60)
-        
-        return results
 
     def run_single_user_automation(self, target_username, messages, actions_config=None):
         """Виконання повного циклу дій для ОДНОГО користувача"""
@@ -2208,6 +1485,7 @@ Looking forward to more! 💯""",
         except Exception as e:
             self.logger.error(f"❌ Критична помилка для користувача @{target_username}: {e}")
             return False
+
     def process_story_with_config(self, target_username, messages, actions_config):
         """Обробка сторіс з урахуванням конфігурації"""
         try:
@@ -2233,4 +1511,331 @@ Looking forward to more! 💯""",
                     for element in elements:
                         if element.is_displayed():
                             story_avatar = element
-                            self.logger.info(f"📱 Знайдено ават
+                            self.logger.info(f"📱 Знайдено аватар зі сторіс: {selector}")
+                            break
+                    if story_avatar:
+                        break
+                except Exception as e:
+                    self.logger.debug(f"Помилка пошуку сторіс через селектор {selector}: {e}")
+                    continue
+            
+            if not story_avatar:
+                self.logger.info(f"📭 Активних сторіс у {target_username} не знайдено")
+                return False
+                
+            # Відкриття сторіс
+            self.logger.info(f"🎬 Відкриття сторіс {target_username}")
+            try:
+                story_avatar.click()
+            except:
+                self.driver.execute_script("arguments[0].click();", story_avatar)
+            self.human_like_delay(1, 2)
+
+            story_actions_completed = 0
+
+            # Лайк сторіс (якщо увімкнено)
+            if actions_config.get('like_stories', True):
+                story_liked = False
+                like_selectors = [
+                    "svg[aria-label='Like']",
+                    "svg[aria-label='Подобається']",
+                    "button[aria-label*='Like']",
+                    "span[role='button'] svg[aria-label*='Like']"
+                ]
+                
+                for selector in like_selectors:
+                    try:
+                        like_button = WebDriverWait(self.driver, 3).until(
+                            EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+                        )
+                        if 'Unlike' not in (like_button.get_attribute('aria-label') or ''):
+                            like_button.click()
+                            story_liked = True
+                            story_actions_completed += 1
+                            self.logger.info("❤️ Поставлено лайк сторіс")
+                            break
+                    except:
+                        continue
+
+                if not story_liked:
+                    self.logger.warning("⚠️ Не вдалося поставити лайк сторіс")
+
+            # Відповідь на сторіс (якщо увімкнено)
+            if actions_config.get('reply_stories', True):
+                story_replied = False
+                reply_selectors = [
+                    "textarea[placeholder*='Send message']",
+                    "textarea[placeholder*='Reply']",
+                    "div[contenteditable='true'][aria-label*='Message']",
+                    "textarea[placeholder*='Надіслати повідомлення']"
+                ]
+                
+                for selector in reply_selectors:
+                    try:
+                        reply_input = WebDriverWait(self.driver, 3).until(
+                            EC.element_to_be_clickable((By.CSS_SELECTOR, selector))
+                        )
+                        message = random.choice(messages)
+                        reply_input.clear()
+                        
+                        # ШВИДКЕ введення повідомлення для сторіс
+                        self.fast_typing(reply_input, message)
+                        self.logger.info(f"💬 Введено відповідь: {message}")
+                        
+                        # Пошук кнопки Send (знаходиться справа від поля вводу) - ОРИГІНАЛЬНА ЛОГІКА
+                        send_button_found = False
+                        
+                        # Спочатку шукаємо кнопку відносно поля вводу
+                        try:
+                            # Знаходимо батьківський контейнер поля вводу
+                            parent_container = reply_input.find_element(By.XPATH, "./..")
+                            
+                            # Шукаємо кнопку Send в тому ж контейнері
+                            send_selectors_relative = [
+                                ".//button[contains(@aria-label, 'Send')]",
+                                ".//button[contains(@aria-label, 'Надіслати')]",
+                                ".//div[@role='button'][contains(@tabindex, '0')]//svg",
+                                ".//button[contains(@type, 'submit')]",
+                                ".//button[.//*[name()='svg']]"
+                            ]
+                            
+                            for selector in send_selectors_relative:
+                                try:
+                                    send_button = parent_container.find_element(By.XPATH, selector)
+                                    if send_button.is_displayed():
+                                        send_button.click()
+                                        send_button_found = True
+                                        self.logger.info("📤 Натиснуто кнопку Send (відносний пошук)")
+                                        break
+                                except:
+                                    continue
+                                    
+                        except Exception as e:
+                            self.logger.debug(f"Помилка відносного пошуку: {e}")
+                        
+                        # Якщо відносний пошук не спрацював, шукаємо глобально
+                        if not send_button_found:
+                            send_selectors = [
+                                "button[aria-label*='Send']",
+                                "button[aria-label*='Надіслати']",
+                                "div[role='button'][tabindex='0'] svg[aria-label*='Send']",
+                                "div[role='button'][tabindex='0'] svg[aria-label*='Надіслати']",
+                                "button[type='submit']",
+                                "svg[aria-label*='Send']",
+                                "svg[aria-label*='Надіслати']",
+                                "button:has(svg[aria-label*='Send'])",
+                                "button:has(svg[aria-label*='Надіслати'])",
+                                # Додаткові селектори для кнопки Send
+                                "button svg[viewBox*='24'][fill*='#']",  # Типова іконка відправки
+                                "div[role='button'] svg[d*='M1.101']",   # Специфічна іконка Send Instagram
+                                "button[style*='cursor: pointer']",      # Активна кнопка
+                            ]
+                            
+                            for send_selector in send_selectors:
+                                try:
+                                    send_button = WebDriverWait(self.driver, 2).until(
+                                        EC.element_to_be_clickable((By.CSS_SELECTOR, send_selector))
+                                    )
+                                    if send_button.is_displayed():
+                                        send_button.click()
+                                        send_button_found = True
+                                        self.logger.info("📤 Натиснуто кнопку Send (глобальний пошук)")
+                                        break
+                                except:
+                                    continue
+                        
+                        # Якщо кнопка Send не знайдена, шукаємо наступний елемент після поля вводу
+                        if not send_button_found:
+                            try:
+                                # Шукаємо наступний сусідній елемент
+                                next_sibling = reply_input.find_element(By.XPATH, "./following-sibling::*[1]")
+                                if next_sibling.tag_name in ['button', 'div'] and next_sibling.is_displayed():
+                                    next_sibling.click()
+                                    send_button_found = True
+                                    self.logger.info("📤 Натиснуто сусідній елемент (кнопка Send)")
+                            except:
+                                pass
+                        
+                        # Останній варіант - Ctrl+Enter для відправки
+                        if not send_button_found:
+                            reply_input.send_keys(Keys.TAB + Keys.RETURN)
+                            self.logger.info("📤 Відправлено через Ctrl+Enter")
+                        
+                        story_replied = True
+                        story_actions_completed += 1
+                        self.logger.info(f"✅ Відправлено відповідь на сторіс: {message}")
+                        break
+                        
+                    except Exception as e:
+                        continue
+
+                if not story_replied:
+                    self.logger.warning("⚠️ Не вдалося відправити відповідь на сторіс")
+
+            # Закриття сторіс
+            close_selectors = [
+                "svg[aria-label='Close']",
+                "button[aria-label='Close']",
+                "div[role='button'][tabindex='0']"
+            ]
+            
+            for selector in close_selectors:
+                try:
+                    close_button = self.driver.find_element(By.CSS_SELECTOR, selector)
+                    close_button.click()
+                    self.logger.info("🚪 Сторіс закрита")
+                    break
+                except:
+                    continue
+            else:
+                ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+                self.logger.info("🚪 Сторіс закрита через ESC")
+
+            return story_actions_completed > 0
+
+        except Exception as e:
+            self.logger.error(f"❌ Помилка при обробці сторіс: {str(e)}")
+            return False
+            
+    # Підтримка старого API для зворотної сумісності
+    def run_automation(self, target_username, messages):
+        """Запуск автоматизації з оптимізованою логікою (старий API)"""
+        try:
+            # Якщо передано один користувач як рядок
+            if isinstance(target_username, str) and ',' not in target_username and ';' not in target_username and '\n' not in target_username:
+                self.logger.info(f"🚀 Початок автоматизації для {target_username}")
+                
+                # Вхід в систему
+                if not self.login():
+                    self.logger.error("❌ Помилка входу в систему")
+                    return False
+                
+                # Виконуємо для одного користувача
+                return self.run_single_user_automation(target_username, messages)
+            else:
+                # Якщо передано багато користувачів, використовуємо новий метод  
+                return self.run_automation_multiple_users(target_username, messages)
+                
+        except Exception as e:
+            self.logger.error(f"❌ Критична помилка при автоматизації: {e}")
+            return False
+        finally:
+            # Завершальні дії
+            try:
+                self.logger.info("🔚 Завершення сесії...")
+                self.human_like_delay(2, 5)
+            except:
+                pass
+            
+    def close(self):
+     if hasattr(self, "driver") and self.driver:
+        self.driver.quit()
+        self.driver = None
+
+    def __del__(self):
+     try:
+        self.close()
+     except Exception:
+        pass  # Ігноруємо будь-які помилки при знищенні об'єкта
+
+
+
+# Приклад використання з багатьма користувачами
+if __name__ == "__main__":
+    # Налаштування для роботи
+    USERNAME = "your_username"
+    PASSWORD = "your_password"
+    
+    # === ПРИКЛАДИ РІЗНИХ СПОСОБІВ ВВЕДЕННЯ КОРИСТУВАЧІВ ===
+    
+    # Варіант 1: Один користувач (старий спосіб)
+    SINGLE_USER = "target_username"
+    
+    # Варіант 2: Багато користувачів через кому
+    MULTIPLE_USERS_COMMA = "user1, user2, user3, user4, user5"
+    
+    # Варіант 3: Багато користувачів через крапку з комою
+    MULTIPLE_USERS_SEMICOLON = "user1; user2; user3; user4; user5"
+    
+    # Варіант 4: Багато користувачів кожен з нового рядка
+    MULTIPLE_USERS_NEWLINE = """user1
+user2
+user3
+user4
+user5"""
+    
+    # Варіант 5: Багато користувачів через пробіл
+    MULTIPLE_USERS_SPACE = "user1 user2 user3 user4 user5"
+    
+    # Варіант 6: З символами @ (будуть видалені автоматично)
+    MULTIPLE_USERS_AT = "@user1, @user2, @user3, @user4, @user5"
+    
+    # Виберіть потрібний варіант
+    TARGET_USERS = MULTIPLE_USERS_COMMA  # Змініть на потрібний варіант
+    
+    MESSAGES = [
+        "Привіт! Як справи? 😊",
+        "Гарний пост! 👍",
+        "Дякую за цікавий контент! 🙏",
+        "Супер фото! 📸",
+        "Вітаю! 🎉",
+        "Класно! 🔥",
+        "Дуже круто! ⭐",
+        "Чудово! 💫",
+        # Багаторядкові повідомлення з гарним форматуванням:
+        """Привіт! 😊
+Дуже сподобався твій пост!
+Продовжуй у тому ж дусі! 👍""",
+        
+        """Класний контент! 🔥
+Чекаю на нові пости
+Так тримати! ⭐""",
+        
+        """Wow! Amazing content! 🤩
+Keep up the great work
+Looking forward to more! 💯""",
+        
+        """Супер! 
+Дуже цікаво! 
+Дякую за натхнення! ✨"""
+    ]
+    
+    # Створення та запуск бота
+    bot = InstagramBot(USERNAME, PASSWORD)
+    
+    try:
+        print("🚀 Instagram Bot з БАГАТОКОРИСТУВАЦЬКОЮ підтримкою")
+        print("=" * 60)
+        print("📋 Можливості:")
+        print("✅ Один користувач: просто вкажіть ім'я")
+        print("✅ Багато користувачів: через кому, крапку з комою, пробіл або новий рядок")
+        print("✅ Автоматичне видалення символів @ з імен")
+        print("✅ Послідовна обробка: користувач1 (всі дії) → користувач2 (всі дії) → ...")
+        print("✅ Детальні логи для кожного користувача")
+        print("✅ Безпечні затримки між користувачами")
+        print("=" * 60)
+        print("📋 План дій для кожного користувача:")
+        print("1. 📸 Лайк постів: профіль → пост1 → лайк → назад → пост2 → лайк → назад")
+        print("2. 📱 Сторіс: на профілі натиснути аватарку → лайк → відповідь")
+        print("3. 💬 Fallback: якщо сторіс немає → Direct Messages → Next → повідомлення")
+        print("=" * 60)
+        
+        # Запуск автоматизації
+        success = bot.run_automation(TARGET_USERS, MESSAGES)
+        
+        print("=" * 60)
+        if success:
+            print("🎉 Багатокористувацька автоматизація завершена! Перевірте деталі в логах.")
+        else:
+            print("❌ Автоматизація завершена з помилками!")
+        print("=" * 60)
+            
+    except KeyboardInterrupt:
+        print("\n⚠️ Автоматизацію перервано користувачем")
+        
+    except Exception as e:
+        print(f"❌ Помилка при запуску бота: {e}")
+        
+    finally:
+        bot.close()
+        print("🔚 Бот закрито")
