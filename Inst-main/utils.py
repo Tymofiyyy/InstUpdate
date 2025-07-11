@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 import hashlib
 import base64
 import threading
+import re
 
 class ProxyManager:
     """Менеджер проксі серверів"""
@@ -68,6 +69,461 @@ class ProxyManager:
             return response.status_code == 200
             
         except Exception:
+            return False
+
+class DolphinAntyManager:
+    """Менеджер для роботи з Dolphin Anty"""
+    
+    def __init__(self):
+        self.api_endpoint = Config.get_dolphin_config().get("api_endpoint", "http://localhost:3001")
+        self.profiles = {}
+        self.logger = logging.getLogger("DolphinAntyManager")
+        
+    def create_profile(self, username, proxy=None):
+        """Створення профілю в Dolphin Anty"""
+        try:
+            profile_name = Config.create_dolphin_profile_name(username)
+            
+            # Перевірка чи профіль вже існує
+            existing_profile = self.get_profile(profile_name)
+            if existing_profile:
+                self.logger.info(f"Профіль {profile_name} вже існує")
+                return existing_profile
+            
+            # Налаштування профілю
+            profile_settings = self._create_profile_settings(username, proxy)
+            
+            # API запит для створення профілю
+            url = f"{self.api_endpoint}/v1.0/browser_profiles"
+            response = requests.post(url, json=profile_settings, timeout=30)
+            
+            if response.status_code == 201:
+                profile_data = response.json()
+                self.profiles[username] = profile_data
+                self.logger.info(f"✅ Створено Dolphin профіль: {profile_name}")
+                return profile_data
+            else:
+                self.logger.error(f"❌ Помилка створення профілю: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.logger.error(f"❌ Помилка API Dolphin: {e}")
+            return None
+            
+    def _create_profile_settings(self, username, proxy):
+        """Створення налаштувань профілю"""
+        dolphin_config = Config.get_dolphin_config()
+        profile_settings = dolphin_config.get("profile_settings", {})
+        
+        # Випадковий пристрій
+        device = Config.get_random_device()
+        
+        # Основні налаштування профілю
+        settings = {
+            "name": Config.create_dolphin_profile_name(username),
+            "tags": ["instagram", "automation"],
+            "platform": profile_settings.get("platform", "windows"),
+            "browserType": "anty",
+            "mainWebsite": "instagram.com",
+            "useragent": {
+                "mode": "manual",
+                "value": device['user_agent']
+            },
+            "webrtc": {
+                "mode": dolphin_config.get("webrtc_mode", "altered"),
+                "fillBasedOnIp": True
+            },
+            "canvas": {
+                "mode": dolphin_config.get("canvas_mode", "noise")
+            },
+            "webgl": {
+                "mode": dolphin_config.get("webgl_mode", "noise")
+            },
+            "clientRects": {
+                "mode": dolphin_config.get("client_rect_mode", "noise")
+            },
+            "timezone": {
+                "mode": "auto",
+                "value": "Europe/Kiev"
+            },
+            "locale": {
+                "mode": "auto",
+                "value": "en-US"
+            },
+            "geolocation": {
+                "mode": "auto",
+                "latitude": 50.4501,
+                "longitude": 30.5234
+            },
+            "cpu": {
+                "mode": "manual",
+                "value": profile_settings.get("cpu", "4")
+            },
+            "memory": {
+                "mode": "manual", 
+                "value": profile_settings.get("memory", "8")
+            },
+            "screen": {
+                "mode": "manual",
+                "resolution": f"{device['width']}x{device['height']}",
+                "scale": device['pixel_ratio']
+            },
+            "mediaDevices": {
+                "mode": profile_settings.get("media_devices", "default")
+            },
+            "ports": {
+                "mode": "protect",
+                "blacklist": "3389,5900,5800,7070,6568,5938"
+            }
+        }
+        
+        # Додавання проксі якщо є
+        if proxy:
+            proxy_parts = proxy.split(':')
+            if len(proxy_parts) >= 2:
+                settings["proxy"] = {
+                    "mode": "http",
+                    "host": proxy_parts[0],
+                    "port": int(proxy_parts[1]),
+                    "username": proxy_parts[2] if len(proxy_parts) > 2 else "",
+                    "password": proxy_parts[3] if len(proxy_parts) > 3 else ""
+                }
+        
+        return settings
+        
+    def get_profile(self, profile_name):
+        """Отримання існуючого профілю"""
+        try:
+            url = f"{self.api_endpoint}/v1.0/browser_profiles"
+            response = requests.get(url, timeout=30)
+            
+            if response.status_code == 200:
+                profiles = response.json().get("data", [])
+                for profile in profiles:
+                    if profile.get("name") == profile_name:
+                        return profile
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Помилка отримання профілю: {e}")
+            return None
+            
+    def start_profile(self, username):
+        """Запуск профілю"""
+        try:
+            profile_name = Config.create_dolphin_profile_name(username)
+            
+            # Отримання профілю
+            profile = self.get_profile(profile_name)
+            if not profile:
+                self.logger.error(f"Профіль {profile_name} не знайдено")
+                return None
+            
+            profile_id = profile.get("id")
+            
+            # Запуск профілю
+            url = f"{self.api_endpoint}/v1.0/browser_profiles/{profile_id}/start"
+            response = requests.get(url, timeout=60)
+            
+            if response.status_code == 200:
+                automation_data = response.json()
+                self.logger.info(f"✅ Запущено Dolphin профіль: {profile_name}")
+                return automation_data
+            else:
+                self.logger.error(f"❌ Помилка запуску профілю: {response.text}")
+                return None
+                
+        except Exception as e:
+            self.logger.error(f"❌ Помилка запуску профілю: {e}")
+            return None
+            
+    def stop_profile(self, username):
+        """Зупинка профілю"""
+        try:
+            profile_name = Config.create_dolphin_profile_name(username)
+            
+            # Отримання профілю
+            profile = self.get_profile(profile_name)
+            if not profile:
+                return True  # Профіль не існує, вважаємо зупиненим
+            
+            profile_id = profile.get("id")
+            
+            # Зупинка профілю
+            url = f"{self.api_endpoint}/v1.0/browser_profiles/{profile_id}/stop"
+            response = requests.get(url, timeout=30)
+            
+            if response.status_code == 200:
+                self.logger.info(f"⏹️ Зупинено Dolphin профіль: {profile_name}")
+                return True
+            else:
+                self.logger.warning(f"⚠️ Помилка зупинки профілю: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"❌ Помилка зупинки профілю: {e}")
+            return False
+            
+    def delete_profile(self, username):
+        """Видалення профілю"""
+        try:
+            profile_name = Config.create_dolphin_profile_name(username)
+            
+            # Спочатку зупиняємо профіль
+            self.stop_profile(username)
+            time.sleep(2)
+            
+            # Отримання профілю
+            profile = self.get_profile(profile_name)
+            if not profile:
+                return True  # Профіль не існує
+            
+            profile_id = profile.get("id")
+            
+            # Видалення профілю
+            url = f"{self.api_endpoint}/v1.0/browser_profiles/{profile_id}"
+            response = requests.delete(url, timeout=30)
+            
+            if response.status_code == 200:
+                self.logger.info(f"🗑️ Видалено Dolphin профіль: {profile_name}")
+                return True
+            else:
+                self.logger.error(f"❌ Помилка видалення профілю: {response.text}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"❌ Помилка видалення профілю: {e}")
+            return False
+            
+    def get_running_profiles(self):
+        """Отримання списку запущених профілів"""
+        try:
+            url = f"{self.api_endpoint}/v1.0/browser_profiles/running"
+            response = requests.get(url, timeout=30)
+            
+            if response.status_code == 200:
+                return response.json().get("data", [])
+            
+            return []
+            
+        except Exception as e:
+            self.logger.error(f"Помилка отримання запущених профілів: {e}")
+            return []
+            
+    def cleanup_profiles(self, username_list=None):
+        """Очищення профілів"""
+        try:
+            if username_list:
+                # Очищення конкретних профілів
+                for username in username_list:
+                    self.delete_profile(username)
+            else:
+                # Очищення всіх профілів з префіксом
+                prefix = Config.get_dolphin_config().get("profile_prefix", "instagram_")
+                url = f"{self.api_endpoint}/v1.0/browser_profiles"
+                response = requests.get(url, timeout=30)
+                
+                if response.status_code == 200:
+                    profiles = response.json().get("data", [])
+                    for profile in profiles:
+                        if profile.get("name", "").startswith(prefix):
+                            profile_id = profile.get("id")
+                            delete_url = f"{self.api_endpoint}/v1.0/browser_profiles/{profile_id}"
+                            requests.delete(delete_url, timeout=30)
+                            
+            self.logger.info("✅ Очищення профілів завершено")
+            
+        except Exception as e:
+            self.logger.error(f"Помилка очищення профілів: {e}")
+
+class TargetDistributor:
+    """Розподіл таргетів між акаунтами"""
+    
+    def __init__(self):
+        self.distributions = {}
+        self.target_config = Config.get_target_distribution_config()
+        self.logger = logging.getLogger("TargetDistributor")
+        
+    def distribute_targets(self, targets, accounts):
+        """Розподіл таргетів між акаунтами"""
+        try:
+            if not targets or not accounts:
+                self.logger.warning("Немає таргетів або акаунтів для розподілу")
+                return
+                
+            strategy = self.target_config.get("strategy", "round_robin")
+            avoid_duplicates = self.target_config.get("avoid_duplicates", True)
+            min_targets = self.target_config.get("min_targets_per_account", 1)
+            
+            self.logger.info(f"🎯 Розподіл {len(targets)} таргетів між {len(accounts)} акаунтами")
+            self.logger.info(f"📋 Стратегія: {strategy}")
+            
+            # Очищення попереднього розподілу
+            self.distributions = {}
+            
+            # Ініціалізація списків для кожного акаунта
+            for account in accounts:
+                self.distributions[account] = []
+            
+            if strategy == "round_robin":
+                self._distribute_round_robin(targets, accounts)
+            elif strategy == "random":
+                self._distribute_random(targets, accounts)
+            elif strategy == "sequential":
+                self._distribute_sequential(targets, accounts)
+            else:
+                # За замовчуванням round_robin
+                self._distribute_round_robin(targets, accounts)
+            
+            # Валідація мінімальної кількості таргетів
+            self._ensure_minimum_targets(min_targets)
+            
+            # Логування результатів
+            self._log_distribution_results()
+            
+        except Exception as e:
+            self.logger.error(f"❌ Помилка розподілу таргетів: {e}")
+            
+    def _distribute_round_robin(self, targets, accounts):
+        """Рівномірний розподіл по колу"""
+        for i, target in enumerate(targets):
+            account_index = i % len(accounts)
+            account = accounts[account_index]
+            self.distributions[account].append(target)
+            
+    def _distribute_random(self, targets, accounts):
+        """Випадковий розподіл"""
+        targets_copy = targets.copy()
+        random.shuffle(targets_copy)
+        
+        targets_per_account = len(targets_copy) // len(accounts)
+        remainder = len(targets_copy) % len(accounts)
+        
+        start_idx = 0
+        for i, account in enumerate(accounts):
+            # Додаткові таргети для перших акаунтів якщо є залишок
+            extra = 1 if i < remainder else 0
+            end_idx = start_idx + targets_per_account + extra
+            
+            self.distributions[account] = targets_copy[start_idx:end_idx]
+            start_idx = end_idx
+            
+    def _distribute_sequential(self, targets, accounts):
+        """Послідовний розподіл"""
+        targets_per_account = len(targets) // len(accounts)
+        remainder = len(targets) % len(accounts)
+        
+        start_idx = 0
+        for i, account in enumerate(accounts):
+            extra = 1 if i < remainder else 0
+            end_idx = start_idx + targets_per_account + extra
+            
+            self.distributions[account] = targets[start_idx:end_idx]
+            start_idx = end_idx
+            
+    def _ensure_minimum_targets(self, min_targets):
+        """Забезпечення мінімальної кількості таргетів для кожного акаунта"""
+        if min_targets <= 0:
+            return
+            
+        # Знаходження акаунтів з недостатньою кількістю таргетів
+        accounts_need_more = []
+        accounts_have_extra = []
+        
+        for account, targets in self.distributions.items():
+            if len(targets) < min_targets:
+                accounts_need_more.append(account)
+            elif len(targets) > min_targets:
+                accounts_have_extra.append(account)
+        
+        # Перерозподіл таргетів
+        for account_need in accounts_need_more:
+            while len(self.distributions[account_need]) < min_targets and accounts_have_extra:
+                # Знаходимо акаунт з найбільшою кількістю таргетів
+                donor_account = max(accounts_have_extra, 
+                                  key=lambda x: len(self.distributions[x]))
+                
+                if len(self.distributions[donor_account]) > min_targets:
+                    # Переносимо таргет
+                    target = self.distributions[donor_account].pop()
+                    self.distributions[account_need].append(target)
+                    
+                    # Якщо у донора залишилось мінімум, видаляємо його зі списку
+                    if len(self.distributions[donor_account]) <= min_targets:
+                        accounts_have_extra.remove(donor_account)
+                else:
+                    break
+                    
+    def _log_distribution_results(self):
+        """Логування результатів розподілу"""
+        total_distributed = sum(len(targets) for targets in self.distributions.values())
+        
+        self.logger.info("📊 Результати розподілу таргетів:")
+        for account, targets in self.distributions.items():
+            preview = ', '.join(targets[:3])
+            if len(targets) > 3:
+                preview += f"... (всього {len(targets)})"
+            self.logger.info(f"  👤 {account}: {len(targets)} таргетів - {preview}")
+        
+        self.logger.info(f"✅ Розподілено {total_distributed} таргетів")
+        
+    def get_targets_for_account(self, username):
+        """Отримання таргетів для конкретного акаунта"""
+        return self.distributions.get(username, [])
+        
+    def get_distribution_stats(self):
+        """Статистика розподілу"""
+        if not self.distributions:
+            return {}
+            
+        target_counts = [len(targets) for targets in self.distributions.values()]
+        
+        return {
+            "total_accounts": len(self.distributions),
+            "total_targets": sum(target_counts),
+            "min_targets_per_account": min(target_counts) if target_counts else 0,
+            "max_targets_per_account": max(target_counts) if target_counts else 0,
+            "avg_targets_per_account": sum(target_counts) / len(target_counts) if target_counts else 0,
+            "distribution": dict(self.distributions)
+        }
+        
+    def save_distribution(self, filename=None):
+        """Збереження розподілу у файл"""
+        try:
+            if not filename:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = Config.DATA_DIR / f"target_distribution_{timestamp}.json"
+            
+            distribution_data = {
+                "timestamp": datetime.now().isoformat(),
+                "config": self.target_config,
+                "stats": self.get_distribution_stats(),
+                "distributions": self.distributions
+            }
+            
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(distribution_data, f, indent=2, ensure_ascii=False)
+                
+            self.logger.info(f"💾 Розподіл збережено: {filename}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Помилка збереження розподілу: {e}")
+            return False
+            
+    def load_distribution(self, filename):
+        """Завантаження розподілу з файлу"""
+        try:
+            with open(filename, 'r', encoding='utf-8') as f:
+                distribution_data = json.load(f)
+                
+            self.distributions = distribution_data.get("distributions", {})
+            self.logger.info(f"📁 Розподіл завантажено: {filename}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Помилка завантаження розподілу: {e}")
             return False
 
 class CaptchaSolver:
@@ -285,6 +741,7 @@ class DatabaseManager:
                         username TEXT UNIQUE NOT NULL,
                         password TEXT NOT NULL,
                         proxy TEXT,
+                        browser_type TEXT DEFAULT 'chrome',
                         status TEXT DEFAULT 'active',
                         last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         followers_count INTEGER DEFAULT 0,
@@ -314,6 +771,7 @@ class DatabaseManager:
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         account_username TEXT NOT NULL,
                         session_data TEXT NOT NULL,
+                        browser_type TEXT DEFAULT 'chrome',
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         expires_at TIMESTAMP,
                         FOREIGN KEY (account_username) REFERENCES accounts (username)
@@ -330,8 +788,24 @@ class DatabaseManager:
                         comments_count INTEGER DEFAULT 0,
                         follows_count INTEGER DEFAULT 0,
                         stories_count INTEGER DEFAULT 0,
+                        messages_count INTEGER DEFAULT 0,
                         FOREIGN KEY (account_username) REFERENCES accounts (username),
                         UNIQUE(account_username, date)
+                    )
+                ''')
+                
+                # Таблиця розподілу таргетів
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS target_distributions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        session_id TEXT NOT NULL,
+                        account_username TEXT NOT NULL,
+                        target_username TEXT NOT NULL,
+                        assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        processed BOOLEAN DEFAULT FALSE,
+                        processed_at TIMESTAMP,
+                        success BOOLEAN,
+                        FOREIGN KEY (account_username) REFERENCES accounts (username)
                     )
                 ''')
                 
@@ -340,15 +814,15 @@ class DatabaseManager:
         except Exception as e:
             logging.error(f"Помилка ініціалізації БД: {e}")
             
-    def add_account(self, username, password, proxy=None):
+    def add_account(self, username, password, proxy=None, browser_type="chrome"):
         """Додавання акаунта"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    INSERT OR REPLACE INTO accounts (username, password, proxy)
-                    VALUES (?, ?, ?)
-                ''', (username, password, proxy))
+                    INSERT OR REPLACE INTO accounts (username, password, proxy, browser_type)
+                    VALUES (?, ?, ?, ?)
+                ''', (username, password, proxy, browser_type))
                 conn.commit()
                 return True
                 
@@ -412,6 +886,57 @@ class DatabaseManager:
         except Exception as e:
             logging.error(f"Помилка логування дії: {e}")
             
+    def save_target_distribution(self, session_id, distributions):
+        """Збереження розподілу таргетів"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                for account_username, targets in distributions.items():
+                    for target in targets:
+                        cursor.execute('''
+                            INSERT INTO target_distributions 
+                            (session_id, account_username, target_username)
+                            VALUES (?, ?, ?)
+                        ''', (session_id, account_username, target))
+                
+                conn.commit()
+                
+        except Exception as e:
+            logging.error(f"Помилка збереження розподілу таргетів: {e}")
+            
+    def get_targets_for_account(self, account_username, session_id):
+        """Отримання таргетів для акаунта"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT target_username FROM target_distributions
+                    WHERE account_username = ? AND session_id = ? AND processed = FALSE
+                ''', (account_username, session_id))
+                
+                results = cursor.fetchall()
+                return [row[0] for row in results]
+                
+        except Exception as e:
+            logging.error(f"Помилка отримання таргетів: {e}")
+            return []
+            
+    def mark_target_processed(self, account_username, target_username, session_id, success=True):
+        """Позначення таргета як обробленого"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE target_distributions 
+                    SET processed = TRUE, processed_at = CURRENT_TIMESTAMP, success = ?
+                    WHERE account_username = ? AND target_username = ? AND session_id = ?
+                ''', (success, account_username, target_username, session_id))
+                conn.commit()
+                
+        except Exception as e:
+            logging.error(f"Помилка позначення таргета: {e}")
+            
     def get_today_actions(self, account_username):
         """Отримання дій за сьогодні"""
         try:
@@ -474,6 +999,12 @@ class DatabaseManager:
                     DELETE FROM sessions
                     WHERE expires_at < datetime('now')
                 ''')
+                
+                # Видалення старих розподілів таргетів
+                cursor.execute('''
+                    DELETE FROM target_distributions
+                    WHERE assigned_at < datetime('now', '-{} days')
+                '''.format(days))
                 
                 conn.commit()
                 
@@ -569,6 +1100,252 @@ class MessageManager:
         except Exception as e:
             logging.error(f"Помилка збереження повідомлень: {e}")
 
+class SessionManager:
+    """Менеджер сесій для різних браузерів"""
+    
+    def __init__(self):
+        self.active_sessions = {}
+        self.dolphin_manager = DolphinAntyManager()
+        self.logger = logging.getLogger("SessionManager")
+        
+    def create_session(self, username, browser_type, account_data):
+        """Створення сесії для акаунта"""
+        try:
+            session_id = f"{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            session_info = {
+                'session_id': session_id,
+                'username': username,
+                'browser_type': browser_type.lower(),
+                'account_data': account_data,
+                'created_at': datetime.now(),
+                'status': 'created'
+            }
+            
+            if browser_type.lower() == 'dolphin anty':
+                # Для Dolphin Anty створюємо профіль
+                profile_data = self.dolphin_manager.create_profile(
+                    username, 
+                    account_data.get('proxy')
+                )
+                if profile_data:
+                    session_info['dolphin_profile'] = profile_data
+                    session_info['status'] = 'profile_created'
+                else:
+                    raise Exception("Не вдалося створити Dolphin профіль")
+            
+            self.active_sessions[username] = session_info
+            self.logger.info(f"✅ Сесія створена для {username} ({browser_type})")
+            
+            return session_info
+            
+        except Exception as e:
+            self.logger.error(f"❌ Помилка створення сесії для {username}: {e}")
+            return None
+            
+    def start_session(self, username):
+        """Запуск сесії"""
+        try:
+            if username not in self.active_sessions:
+                self.logger.error(f"Сесія для {username} не знайдена")
+                return None
+                
+            session_info = self.active_sessions[username]
+            browser_type = session_info['browser_type']
+            
+            if browser_type == 'dolphin anty':
+                # Запуск Dolphin профілю
+                automation_data = self.dolphin_manager.start_profile(username)
+                if automation_data:
+                    session_info['automation_data'] = automation_data
+                    session_info['status'] = 'running'
+                    self.logger.info(f"🚀 Dolphin сесія запущена для {username}")
+                    return automation_data
+                else:
+                    raise Exception("Не вдалося запустити Dolphin профіль")
+            else:
+                # Для Chrome просто позначаємо як запущену
+                session_info['status'] = 'running'
+                self.logger.info(f"🚀 Chrome сесія запущена для {username}")
+                return {'browser_type': 'chrome'}
+                
+        except Exception as e:
+            self.logger.error(f"❌ Помилка запуску сесії для {username}: {e}")
+            return None
+            
+    def stop_session(self, username):
+        """Зупинка сесії"""
+        try:
+            if username not in self.active_sessions:
+                return True
+                
+            session_info = self.active_sessions[username]
+            browser_type = session_info['browser_type']
+            
+            if browser_type == 'dolphin anty':
+                # Зупинка Dolphin профілю
+                success = self.dolphin_manager.stop_profile(username)
+                if success:
+                    session_info['status'] = 'stopped'
+                    self.logger.info(f"⏹️ Dolphin сесія зупинена для {username}")
+                return success
+            else:
+                # Для Chrome просто позначаємо як зупинену
+                session_info['status'] = 'stopped'
+                self.logger.info(f"⏹️ Chrome сесія зупинена для {username}")
+                return True
+                
+        except Exception as e:
+            self.logger.error(f"❌ Помилка зупинки сесії для {username}: {e}")
+            return False
+            
+    def cleanup_session(self, username, delete_profile=False):
+        """Очищення сесії"""
+        try:
+            if username in self.active_sessions:
+                session_info = self.active_sessions[username]
+                browser_type = session_info['browser_type']
+                
+                # Спочатку зупиняємо
+                self.stop_session(username)
+                
+                if browser_type == 'dolphin anty' and delete_profile:
+                    # Видалення Dolphin профілю
+                    self.dolphin_manager.delete_profile(username)
+                
+                # Видалення з активних сесій
+                del self.active_sessions[username]
+                self.logger.info(f"🧹 Сесія очищена для {username}")
+                
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"❌ Помилка очищення сесії для {username}: {e}")
+            return False
+
+class BrowserSwitcher:
+    """Клас для перемикання між браузерами"""
+    
+    def __init__(self):
+        self.current_browser = None
+        self.session_manager = SessionManager()
+        self.logger = logging.getLogger("BrowserSwitcher")
+        
+    def set_browser(self, browser_type):
+        """Встановлення типу браузера"""
+        supported_browsers = ["chrome", "dolphin anty"]
+        browser_type = browser_type.lower()
+        
+        if browser_type not in supported_browsers:
+            self.logger.error(f"Непідтримуваний браузер: {browser_type}")
+            return False
+            
+        self.current_browser = browser_type
+        self.logger.info(f"🌐 Встановлено браузер: {browser_type}")
+        return True
+        
+    def get_current_browser(self):
+        """Отримання поточного браузера"""
+        return self.current_browser
+        
+    def is_dolphin_available(self):
+        """Перевірка доступності Dolphin Anty"""
+        try:
+            dolphin_config = Config.get_dolphin_config()
+            api_endpoint = dolphin_config.get("api_endpoint", "http://localhost:3001")
+            
+            response = requests.get(f"{api_endpoint}/v1.0/browser_profiles", timeout=5)
+            return response.status_code == 200
+            
+        except Exception as e:
+            self.logger.warning(f"Dolphin Anty недоступний: {e}")
+            return False
+            
+    def get_available_browsers(self):
+        """Отримання списку доступних браузерів"""
+        browsers = ["chrome"]
+        
+        if self.is_dolphin_available():
+            browsers.append("dolphin anty")
+            
+        return browsers
+        
+    def validate_browser_choice(self, browser_type):
+        """Валідація вибору браузера"""
+        available = self.get_available_browsers()
+        
+        if browser_type.lower() not in available:
+            self.logger.error(f"Браузер {browser_type} недоступний. Доступні: {', '.join(available)}")
+            return False
+            
+        return True
+
+class AccountValidator:
+    """Валідатор акаунтів та їх налаштувань"""
+    
+    def __init__(self):
+        self.logger = logging.getLogger("AccountValidator")
+        
+    def validate_account_credentials(self, username, password):
+        """Валідація облікових даних"""
+        errors = []
+        
+        # Перевірка username
+        if not username or len(username.strip()) == 0:
+            errors.append("Username не може бути порожнім")
+        elif len(username) < 3:
+            errors.append("Username занадто короткий (мінімум 3 символи)")
+        elif len(username) > 30:
+            errors.append("Username занадто довгий (максимум 30 символів)")
+        
+        # Перевірка на недозволені символи
+        if not re.match("^[a-zA-Z0-9._]+$", username):
+            errors.append("Username містить недозволені символи")
+        
+        # Перевірка password
+        if not password or len(password.strip()) == 0:
+            errors.append("Password не може бути порожнім")
+        elif len(password) < 6:
+            errors.append("Password занадто короткий (мінімум 6 символів)")
+        
+        return len(errors) == 0, errors
+        
+    def validate_proxy_format(self, proxy_string):
+        """Валідація формату проксі"""
+        if not proxy_string:
+            return True, []  # Проксі опціонально
+            
+        errors = []
+        parts = proxy_string.split(':')
+        
+        if len(parts) < 2:
+            errors.append("Неправильний формат проксі (очікується ip:port або ip:port:user:pass)")
+            return False, errors
+        
+        # Перевірка IP
+        ip = parts[0]
+        ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}'
+                        
+        if not re.match(ip_pattern, ip):
+            errors.append("Неправильний формат IP адреси")
+        else:
+            # Перевірка діапазону IP
+            ip_parts = ip.split('.')
+            for part in ip_parts:
+                if not (0 <= int(part) <= 255):
+                    errors.append("IP адреса поза допустимим діапазоном")
+                    break
+        
+        # Перевірка порту
+        try:
+            port = int(parts[1])
+            if not (1 <= port <= 65535):
+                errors.append("Порт поза допустимим діапазоном (1-65535)")
+        except ValueError:
+            errors.append("Порт повинен бути числом")
+        
+        return len(errors) == 0, errors
+
 def setup_logging():
     """Налаштування логування"""
     log_format = Config.LOGGING["format"]
@@ -614,471 +1391,73 @@ def generate_device_fingerprint():
     fingerprint_string = json.dumps(fingerprint_data, sort_keys=True)
     fingerprint_hash = hashlib.md5(fingerprint_string.encode()).hexdigest()
     
-    return fingerprint_hash, fingerprint_data 
-
-class ParallelBotManager:
-    """Менеджер для паралельної роботи кількох ботів"""
-    
-    def __init__(self, max_parallel=5):
-        self.max_parallel = max_parallel
-        self.active_bots = {}
-        self.bot_threads = {}
-        self.results = {}
-        self.lock = threading.Lock()
-        self.start_time = datetime.now()
-        self.logger = logging.getLogger('ParallelBotManager')
-        self.resource_monitor = ResourceMonitor()
-        
-    def add_bot(self, account_data):
-        """Додавання бота до черги"""
-        username = account_data['username']
-        
-        with self.lock:
-            if username in self.active_bots:
-                self.logger.warning(f"Бот {username} вже активний")
-                return False
-                
-            self.active_bots[username] = {
-                'account_data': account_data,
-                'status': 'pending',
-                'start_time': None,
-                'end_time': None,
-                'actions_completed': 0,
-                'errors': []
-            }
-            
-        return True
-        
-    def run_bots(self, target_users, messages, actions_config=None):
-        """Запуск ботів паралельно з управлінням ресурсами"""
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-        import threading
-        
-        total_accounts = len(self.active_bots)
-        self.logger.info(f"🚀 Запуск {total_accounts} ботів (макс. паралельно: {self.max_parallel})")
-        
-        # Створюємо пул потоків
-        with ThreadPoolExecutor(max_workers=self.max_parallel) as executor:
-            futures = {}
-            
-            # Розбиваємо акаунти на батчі
-            accounts_list = list(self.active_bots.items())
-            
-            for i in range(0, len(accounts_list), self.max_parallel):
-                batch = accounts_list[i:i + self.max_parallel]
-                
-                # Запускаємо батч
-                for username, bot_info in batch:
-                    if self.resource_monitor.can_start_new_bot():
-                        future = executor.submit(
-                            self._run_single_bot,
-                            username,
-                            bot_info['account_data'],
-                            target_users,
-                            messages,
-                            actions_config
-                        )
-                        futures[future] = username
-                        
-                        # Затримка між запусками
-                        time.sleep(Config.PARALLEL_SETTINGS['account_start_delay'])
-                    else:
-                        self.logger.warning(f"⚠️ Недостатньо ресурсів для {username}")
-                        bot_info['status'] = 'skipped'
-                        bot_info['errors'].append("Insufficient resources")
-                
-                # Чекаємо завершення батча перед запуском наступного
-                if i + self.max_parallel < len(accounts_list):
-                    self.logger.info(f"⏳ Очікування завершення батча перед наступним...")
-                    for future in as_completed(futures):
-                        username = futures[future]
-                        try:
-                            result = future.result()
-                            self._process_bot_result(username, result)
-                        except Exception as e:
-                            self._handle_bot_error(username, e)
-                    
-                    # Очищуємо futures для наступного батча
-                    futures.clear()
-                    
-                    # Пауза між батчами
-                    batch_delay = Config.MULTI_USER_CONFIG['batch_processing']['batch_delay']
-                    self.logger.info(f"⏰ Пауза між батчами: {batch_delay} сек")
-                    time.sleep(batch_delay)
-            
-            # Обробка останнього батча
-            for future in as_completed(futures):
-                username = futures[future]
-                try:
-                    result = future.result()
-                    self._process_bot_result(username, result)
-                except Exception as e:
-                    self._handle_bot_error(username, e)
-        
-        # Генерація звіту
-        return self._generate_report()
-        
-    def _run_single_bot(self, username, account_data, target_users, messages, actions_config):
-        """Запуск одного бота в окремому потоці"""
-        from instagram_bot import InstagramBot
-        
-        bot = None
-        try:
-            # Оновлення статусу
-            with self.lock:
-                self.active_bots[username]['status'] = 'running'
-                self.active_bots[username]['start_time'] = datetime.now()
-            
-            # Створення та запуск бота
-            bot = InstagramBot(
-                account_data['username'],
-                account_data['password'],
-                account_data.get('proxy'),
-                account_data.get('browser_type', 'Chrome')
-            )
-            
-            # Встановлення обмежень ресурсів
-            self.resource_monitor.set_bot_limits(username, bot)
-            
-            # Запуск автоматизації
-            success = bot.run_automation_multiple_users(
-                target_users,
-                messages,
-                actions_config
-            )
-            
-            # Збір статистики
-            stats = self._collect_bot_stats(bot)
-            
-            return {
-                'success': success,
-                'stats': stats,
-                'errors': []
-            }
-            
-        except Exception as e:
-            self.logger.error(f"❌ Помилка бота {username}: {e}")
-            return {
-                'success': False,
-                'stats': {},
-                'errors': [str(e)]
-            }
-        finally:
-            # Закриття бота
-            if bot:
-                try:
-                    bot.close()
-                except:
-                    pass
-            
-            # Оновлення статусу
-            with self.lock:
-                self.active_bots[username]['status'] = 'completed'
-                self.active_bots[username]['end_time'] = datetime.now()
-                
-    def _process_bot_result(self, username, result):
-        """Обробка результату роботи бота"""
-        with self.lock:
-            bot_info = self.active_bots[username]
-            bot_info['success'] = result['success']
-            bot_info['stats'] = result.get('stats', {})
-            bot_info['errors'].extend(result.get('errors', []))
-            
-            if result['success']:
-                self.logger.info(f"✅ Бот {username} завершив успішно")
-            else:
-                self.logger.error(f"❌ Бот {username} завершив з помилками")
-                
-    def _handle_bot_error(self, username, error):
-        """Обробка помилки бота"""
-        with self.lock:
-            bot_info = self.active_bots[username]
-            bot_info['status'] = 'error'
-            bot_info['success'] = False
-            bot_info['errors'].append(str(error))
-            bot_info['end_time'] = datetime.now()
-            
-        self.logger.error(f"❌ Критична помилка для {username}: {error}")
-        
-    def _collect_bot_stats(self, bot):
-        """Збір статистики роботи бота"""
-        stats = {
-            'likes': 0,
-            'comments': 0,
-            'follows': 0,
-            'stories': 0,
-            'messages': 0,
-            'total_actions': 0
-        }
-        
-        # Тут можна додати логіку збору статистики з бота
-        # Наприклад, через його внутрішні лічильники
-        
-        return stats
-        
-    def _generate_report(self):
-        """Генерація детального звіту"""
-        report = {
-            'summary': {
-                'total_accounts': len(self.active_bots),
-                'successful': 0,
-                'failed': 0,
-                'skipped': 0,
-                'total_time': (datetime.now() - self.start_time).total_seconds()
-            },
-            'accounts': {},
-            'statistics': {
-                'total_likes': 0,
-                'total_comments': 0,
-                'total_follows': 0,
-                'total_stories': 0,
-                'total_messages': 0
-            }
-        }
-        
-        with self.lock:
-            for username, bot_info in self.active_bots.items():
-                # Підрахунок статусів
-                if bot_info['status'] == 'completed' and bot_info.get('success'):
-                    report['summary']['successful'] += 1
-                elif bot_info['status'] == 'error' or not bot_info.get('success'):
-                    report['summary']['failed'] += 1
-                elif bot_info['status'] == 'skipped':
-                    report['summary']['skipped'] += 1
-                
-                # Збір статистики
-                stats = bot_info.get('stats', {})
-                for key in ['likes', 'comments', 'follows', 'stories', 'messages']:
-                    report['statistics'][f'total_{key}'] += stats.get(key, 0)
-                
-                # Інформація про акаунт
-                report['accounts'][username] = {
-                    'status': bot_info['status'],
-                    'success': bot_info.get('success', False),
-                    'start_time': bot_info['start_time'].isoformat() if bot_info['start_time'] else None,
-                    'end_time': bot_info['end_time'].isoformat() if bot_info['end_time'] else None,
-                    'duration': (bot_info['end_time'] - bot_info['start_time']).total_seconds() 
-                               if bot_info['start_time'] and bot_info['end_time'] else None,
-                    'stats': stats,
-                    'errors': bot_info['errors']
-                }
-        
-        # Розрахунок показників
-        report['summary']['success_rate'] = (
-            report['summary']['successful'] / report['summary']['total_accounts'] * 100
-            if report['summary']['total_accounts'] > 0 else 0
-        )
-        
-        report['summary']['avg_time_per_account'] = (
-            report['summary']['total_time'] / report['summary']['total_accounts']
-            if report['summary']['total_accounts'] > 0 else 0
-        )
-        
-        # Виведення звіту
-        self._print_report(report)
-        
-        # Збереження звіту
-        self._save_report(report)
-        
-        return report
-        
-    def _print_report(self, report):
-        """Виведення звіту в консоль"""
-        self.logger.info("\n" + "=" * 60)
-        self.logger.info("📊 ЗВІТ ПАРАЛЕЛЬНОЇ РОБОТИ БОТІВ")
-        self.logger.info("=" * 60)
-        
-        summary = report['summary']
-        self.logger.info(f"👥 Всього акаунтів: {summary['total_accounts']}")
-        self.logger.info(f"✅ Успішно: {summary['successful']}")
-        self.logger.info(f"❌ З помилками: {summary['failed']}")
-        self.logger.info(f"⏭️ Пропущено: {summary['skipped']}")
-        self.logger.info(f"📈 Успішність: {summary['success_rate']:.1f}%")
-        self.logger.info(f"⏱️ Загальний час: {summary['total_time']:.1f} сек")
-        self.logger.info(f"⏳ Середній час на акаунт: {summary['avg_time_per_account']:.1f} сек")
-        
-        self.logger.info("\n📊 СТАТИСТИКА ДІЙ:")
-        stats = report['statistics']
-        self.logger.info(f"❤️ Лайків: {stats['total_likes']}")
-        self.logger.info(f"💬 Коментарів: {stats['total_comments']}")
-        self.logger.info(f"👥 Підписок: {stats['total_follows']}")
-        self.logger.info(f"📱 Сторіс: {stats['total_stories']}")
-        self.logger.info(f"📩 Повідомлень: {stats['total_messages']}")
-        
-        self.logger.info("=" * 60)
-        
-    def _save_report(self, report):
-        """Збереження звіту у файл"""
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = Config.DATA_DIR / f"parallel_report_{timestamp}.json"
-            
-            with open(filename, 'w', encoding='utf-8') as f:
-                json.dump(report, f, indent=2, ensure_ascii=False)
-                
-            self.logger.info(f"💾 Звіт збережено: {filename}")
-            
-        except Exception as e:
-            self.logger.error(f"Помилка збереження звіту: {e}")
-            
-    def stop_all_bots(self):
-        """Зупинка всіх активних ботів"""
-        self.logger.warning("⏹️ Зупинка всіх ботів...")
-        
-        with self.lock:
-            for username in self.active_bots:
-                if self.active_bots[username]['status'] == 'running':
-                    # Тут можна додати логіку примусової зупинки
-                    self.active_bots[username]['status'] = 'stopped'
-                    
-        self.logger.info("✅ Всі боти зупинені")
-
-
-class ResourceMonitor:
-    """Моніторинг ресурсів для паралельних ботів"""
-    
-    def __init__(self):
-        self.cpu_limit = Config.PARALLEL_SETTINGS.get('cpu_limit_per_account', 25)
-        self.memory_limit = Config.PARALLEL_SETTINGS.get('memory_limit_per_account', 1024)
-        self.active_processes = {}
-        
-    def can_start_new_bot(self):
-        """Перевірка можливості запуску нового бота"""
-        try:
-            import psutil
-            
-            # Перевірка CPU
-            cpu_percent = psutil.cpu_percent(interval=0.1)
-            if cpu_percent > 80:
-                logging.warning(f"⚠️ Високе навантаження CPU: {cpu_percent}%")
-                return False
-            
-            # Перевірка пам'яті
-            memory = psutil.virtual_memory()
-            if memory.percent > 85:
-                logging.warning(f"⚠️ Високе використання пам'яті: {memory.percent}%")
-                return False
-            
-            # Перевірка вільної пам'яті
-            available_mb = memory.available / 1024 / 1024
-            if available_mb < self.memory_limit:
-                logging.warning(f"⚠️ Недостатньо вільної пам'яті: {available_mb:.0f} MB")
-                return False
-            
-            return True
-            
-        except ImportError:
-            # Якщо psutil не встановлено, дозволяємо запуск
-            return True
-        except Exception as e:
-            logging.error(f"Помилка перевірки ресурсів: {e}")
-            return True
-            
-    def set_bot_limits(self, username, bot):
-        """Встановлення обмежень для бота"""
-        try:
-            import psutil
-            
-            # Тут можна додати логіку обмеження ресурсів для процесу
-            # Наприклад, через nice/ionice на Linux або Job Objects на Windows
-            
-            self.active_processes[username] = {
-                'bot': bot,
-                'start_time': datetime.now(),
-                'cpu_limit': self.cpu_limit,
-                'memory_limit': self.memory_limit
-            }
-            
-        except:
-            pass
-            
-    def monitor_resources(self):
-        """Моніторинг використання ресурсів"""
-        try:
-            import psutil
-            
-            stats = {
-                'cpu_percent': psutil.cpu_percent(interval=0.1),
-                'memory_percent': psutil.virtual_memory().percent,
-                'disk_percent': psutil.disk_usage('/').percent,
-                'active_bots': len(self.active_processes)
-            }
-            
-            return stats
-            
-        except:
-            return {}
-
-
-class BatchProcessor:
-    """Обробка користувачів батчами"""
-    
-    def __init__(self, batch_size=10):
-        self.batch_size = batch_size
-        self.processed = 0
-        self.total = 0
-        self.start_time = datetime.now()
-        
-    def process_users_in_batches(self, users, process_func, randomize=True):
-        """Обробка користувачів батчами з прогресом"""
-        self.total = len(users)
-        
-        if randomize:
-            users = users.copy()
-            random.shuffle(users)
-            
-        results = []
-        
-        for i in range(0, len(users), self.batch_size):
-            batch = users[i:i + self.batch_size]
-            batch_num = (i // self.batch_size) + 1
-            total_batches = (len(users) + self.batch_size - 1) // self.batch_size
-            
-            logging.info(f"📦 Обробка батча {batch_num}/{total_batches}")
-            
-            for user in batch:
-                try:
-                    result = process_func(user)
-                    results.append(result)
-                    self.processed += 1
-                    
-                    # Прогрес
-                    progress = (self.processed / self.total) * 100
-                    elapsed = (datetime.now() - self.start_time).total_seconds()
-                    eta = (elapsed / self.processed) * (self.total - self.processed) if self.processed > 0 else 0
-                    
-                    logging.info(f"📊 Прогрес: {self.processed}/{self.total} ({progress:.1f}%) - ETA: {eta:.0f} сек")
-                    
-                except Exception as e:
-                    logging.error(f"Помилка обробки {user}: {e}")
-                    results.append(None)
-                    
-            # Пауза між батчами
-            if i + self.batch_size < len(users):
-                delay = random.uniform(
-                    Config.MULTI_USER_CONFIG['batch_processing']['batch_delay'] * 0.8,
-                    Config.MULTI_USER_CONFIG['batch_processing']['batch_delay'] * 1.2
-                )
-                logging.info(f"⏳ Пауза між батчами: {delay:.0f} сек")
-                time.sleep(delay)
-                
-def generate_device_fingerprint():
-    """Генерація відбитка пристрою"""
-    device = Config.get_random_device()
-    user_agent = device['user_agent']
-    
-    # Створення унікального відбитка
-    fingerprint_data = {
-        'user_agent': user_agent,
-        'screen_resolution': f"{device['width']}x{device['height']}",
-        'pixel_ratio': device['pixel_ratio'],
-        'timezone': random.choice(['Europe/Kiev', 'Europe/Moscow', 'Europe/Warsaw']),
-        'language': 'uk-UA',
-        'platform': 'iPhone' if 'iPhone' in user_agent else 'Android'
-    }
-    
-    # Хешування відбитка
-    fingerprint_string = json.dumps(fingerprint_data, sort_keys=True)
-    fingerprint_hash = hashlib.md5(fingerprint_string.encode()).hexdigest()
-    
     return fingerprint_hash, fingerprint_data
+
+# Глобальні менеджери
+_user_agent_rotator = None
+_proxy_rotator = None
+_performance_monitor = None
+_error_handler = None
+
+def get_user_agent_rotator():
+    """Отримання глобального ротатора User-Agent"""
+    global _user_agent_rotator
+    if _user_agent_rotator is None:
+        from utils import UserAgentRotator
+        _user_agent_rotator = UserAgentRotator()
+    return _user_agent_rotator
+
+def get_proxy_rotator():
+    """Отримання глобального ротатора проксі"""
+    global _proxy_rotator
+    if _proxy_rotator is None:
+        from utils import ProxyRotator
+        _proxy_rotator = ProxyRotator()
+    return _proxy_rotator
+
+def initialize_utils():
+    """Ініціалізація всіх утиліт"""
+    logging.info("🔧 Ініціалізація утиліт...")
+    
+    # Створення директорій
+    create_directories()
+    
+    # Налаштування логування
+    setup_logging()
+    
+    logging.info("✅ Утиліти ініціалізовано")
+
+def finalize_utils():
+    """Фінальне очищення утиліт"""
+    logging.info("🧹 Фінальне очищення...")
+    logging.info("✅ Очищення завершено")
+
+if __name__ == "__main__":
+    # Тестування утиліт
+    initialize_utils()
+    
+    print("🧪 Тестування утиліт Instagram Bot...")
+    
+    # Тест Dolphin Anty Manager
+    dolphin = DolphinAntyManager()
+    print(f"🐬 Dolphin Anty доступний: {BrowserSwitcher().is_dolphin_available()}")
+    
+    # Тест розподілу таргетів
+    distributor = TargetDistributor()
+    test_targets = ["user1", "user2", "user3", "user4", "user5"]
+    test_accounts = ["account1", "account2"]
+    
+    distributor.distribute_targets(test_targets, test_accounts)
+    print("🎯 Тест розподілу таргетів:")
+    for account, targets in distributor.distributions.items():
+        print(f"  {account}: {targets}")
+    
+    # Тест валідації
+    validator = AccountValidator()
+    valid, errors = validator.validate_account_credentials("test_user", "password123")
+    print(f"✅ Валідація акаунта: {valid}")
+    if errors:
+        print(f"❌ Помилки: {errors}")
+    
+    finalize_utils()
+    print("🎉 Тестування завершено!")
