@@ -1,0 +1,417 @@
+2025-07-04 17:45:30 - root - INFO - Логування налаштовано
+2025-07-04 17:47:32 - root - INFO - Логування налаштовано
+2025-07-04 18:34:17 - root - INFO - Логування налаштовано
+2025-07-04 20:22:05 - root - INFO - Логування налаштовано
+2025-07-04 20:22:06 - root - INFO - Завантажено 1 акаунтів
+2025-07-04 20:22:19 - root - INFO - Запуск автоматизації: 1 акаунтів, 1 цілей
+2025-07-04 20:22:19 - root - INFO - Обробка акаунту: alexwent2
+2025-07-04 20:22:19 - root - INFO - Обробка цілі: tomwoker1
+2025-07-04 20:22:19 - root - INFO - Спроба входу для акаунту: alexwent2
+2025-07-04 20:22:19 - WDM - INFO - ====== WebDriver manager ======
+2025-07-04 20:22:21 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:22:21 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:22:21 - WDM - INFO - There is no [win64] chromedriver "137.0.7151.119" for browser google-chrome "137.0.7151" in cache
+2025-07-04 20:22:21 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:22:22 - WDM - INFO - WebDriver version 137.0.7151.119 selected
+2025-07-04 20:22:22 - WDM - INFO - Modern chrome version https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/win32/chromedriver-win32.zip
+2025-07-04 20:22:22 - WDM - INFO - About to download new driver from https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/win32/chromedriver-win32.zip
+2025-07-04 20:22:23 - WDM - INFO - Driver downloading response is 200
+2025-07-04 20:22:24 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:22:24 - WDM - INFO - Driver has been saved in cache [C:\Users\timof\.wdm\drivers\chromedriver\win64\137.0.7151.119]
+2025-07-04 20:22:24 - root - INFO - Використовується ChromeDriver: C:\Users\timof\.wdm\drivers\chromedriver\win64\137.0.7151.119\chromedriver-win32\chromedriver.exe
+2025-07-04 20:22:26 - root - INFO - WebDriver успішно створено для alexwent2
+2025-07-04 20:22:36 - root - ERROR - Не знайдено кнопку входу
+2025-07-04 20:22:45 - root - INFO - Пошук сторіс tomwoker1
+2025-07-04 20:22:49 - root - WARNING - Не знайдено активних сторіс для tomwoker1
+2025-07-04 20:22:52 - root - INFO - Пошук сторіс tomwoker1 для відповіді
+2025-07-04 20:22:57 - root - WARNING - Не знайдено активних сторіс для відповіді tomwoker1
+2025-07-04 20:23:30 - root - INFO - Затримка між акаунтами: 115.3 секунд
+2025-07-04 20:23:53 - root - INFO - Драйвер для alexwent2 закрито
+2025-07-04 20:23:53 - root - INFO - Всі драйвери закрито
+2025-07-04 20:30:55 - root - INFO - Логування налаштовано
+2025-07-04 20:30:56 - root - INFO - Завантажено 1 акаунтів
+2025-07-04 20:31:00 - root - INFO - Спроба входу для акаунту: alexwent2
+2025-07-04 20:31:00 - WDM - INFO - ====== WebDriver manager ======
+2025-07-04 20:31:01 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:31:01 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:31:02 - WDM - INFO - There is no [win64] chromedriver "137.0.7151.119" for browser google-chrome "137.0.7151" in cache
+2025-07-04 20:31:02 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:31:03 - WDM - INFO - WebDriver version 137.0.7151.119 selected
+2025-07-04 20:31:03 - WDM - INFO - Modern chrome version https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/win32/chromedriver-win32.zip
+2025-07-04 20:31:03 - WDM - INFO - About to download new driver from https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/win32/chromedriver-win32.zip
+2025-07-04 20:31:03 - WDM - INFO - Driver downloading response is 200
+2025-07-04 20:31:04 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:31:05 - WDM - INFO - Driver has been saved in cache [C:\Users\timof\.wdm\drivers\chromedriver\win64\137.0.7151.119]
+2025-07-04 20:31:05 - root - INFO - Використовується ChromeDriver: C:\Users\timof\.wdm\drivers\chromedriver\win64\137.0.7151.119\chromedriver-win32\chromedriver.exe
+2025-07-04 20:31:06 - root - INFO - WebDriver успішно створено для alexwent2
+2025-07-04 20:31:36 - root - INFO - Поточна URL після входу: https://www.instagram.com/
+2025-07-04 20:31:36 - root - WARNING - Виявлено капчу
+2025-07-04 20:31:36 - root - INFO - Оновлено статус alexwent2: login_failed
+2025-07-04 20:31:36 - root - ERROR - Помилка входу для alexwent2
+2025-07-04 20:36:45 - root - INFO - Драйвер для alexwent2 закрито
+2025-07-04 20:36:45 - root - INFO - Всі драйвери закрито
+2025-07-04 20:40:25 - root - INFO - Логування налаштовано
+2025-07-04 20:43:57 - root - INFO - Логування налаштовано
+2025-07-04 20:52:40 - root - INFO - Логування налаштовано
+2025-07-04 20:52:41 - root - INFO - Завантажено 1 акаунтів
+2025-07-04 20:53:31 - root - INFO - Додано акаунт: alexwent2
+2025-07-04 20:53:34 - root - INFO - Спроба входу для акаунту: alexwent2
+2025-07-04 20:53:34 - WDM - INFO - ====== WebDriver manager ======
+2025-07-04 20:53:35 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:53:36 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:53:36 - WDM - INFO - There is no [win64] chromedriver "137.0.7151.119" for browser google-chrome "137.0.7151" in cache
+2025-07-04 20:53:36 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:53:37 - WDM - INFO - WebDriver version 137.0.7151.119 selected
+2025-07-04 20:53:37 - WDM - INFO - Modern chrome version https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/win32/chromedriver-win32.zip
+2025-07-04 20:53:37 - WDM - INFO - About to download new driver from https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/win32/chromedriver-win32.zip
+2025-07-04 20:53:37 - WDM - INFO - Driver downloading response is 200
+2025-07-04 20:53:38 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:53:39 - WDM - INFO - Driver has been saved in cache [C:\Users\timof\.wdm\drivers\chromedriver\win64\137.0.7151.119]
+2025-07-04 20:53:39 - root - INFO - Використовується ChromeDriver: C:\Users\timof\.wdm\drivers\chromedriver\win64\137.0.7151.119\chromedriver-win32\chromedriver.exe
+2025-07-04 20:53:41 - root - INFO - WebDriver успішно створено для alexwent2
+2025-07-04 20:53:51 - root - ERROR - Не знайдено поле для введення логіна
+2025-07-04 20:53:54 - root - INFO - Видалено акаунт: alexwent2
+2025-07-04 20:54:41 - root - INFO - Додано акаунт: alexwent2
+2025-07-04 20:54:47 - root - INFO - Спроба входу для акаунту: alexwent2
+2025-07-04 20:54:47 - WDM - INFO - ====== WebDriver manager ======
+2025-07-04 20:54:48 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:54:49 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:54:49 - WDM - INFO - There is no [win64] chromedriver "137.0.7151.119" for browser google-chrome "137.0.7151" in cache
+2025-07-04 20:54:49 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:54:50 - WDM - INFO - WebDriver version 137.0.7151.119 selected
+2025-07-04 20:54:50 - WDM - INFO - Modern chrome version https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/win32/chromedriver-win32.zip
+2025-07-04 20:54:50 - WDM - INFO - About to download new driver from https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/win32/chromedriver-win32.zip
+2025-07-04 20:54:50 - WDM - INFO - Driver downloading response is 200
+2025-07-04 20:54:51 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 20:54:52 - WDM - INFO - Driver has been saved in cache [C:\Users\timof\.wdm\drivers\chromedriver\win64\137.0.7151.119]
+2025-07-04 20:54:52 - root - INFO - Використовується ChromeDriver: C:\Users\timof\.wdm\drivers\chromedriver\win64\137.0.7151.119\chromedriver-win32\chromedriver.exe
+2025-07-04 20:54:53 - root - INFO - WebDriver успішно створено для alexwent2
+2025-07-04 20:54:59 - root - WARNING - Капча на головній сторінці
+2025-07-04 20:54:59 - root - WARNING - Виявлено капчу, спроба обходу...
+2025-07-04 20:55:09 - root - INFO - Капча обійдена через повернення назад
+2025-07-04 20:55:15 - root - WARNING - Капча на сторінці входу
+2025-07-04 20:55:15 - root - WARNING - Виявлено капчу, спроба обходу...
+2025-07-04 20:55:26 - root - INFO - Капча обійдена через повернення назад
+2025-07-04 20:55:26 - root - ERROR - Не знайдено поле для введення логіна
+2025-07-04 20:55:41 - root - INFO - Запуск автоматизації: 1 акаунтів, 1 цілей
+2025-07-04 20:55:41 - root - INFO - Обробка акаунту: alexwent2
+2025-07-04 20:55:41 - root - INFO - Обробка цілі: tomwoker1
+2025-07-04 20:55:41 - root - INFO - Перехід на профіль tomwoker1
+2025-07-04 20:55:49 - root - WARNING - Не знайдено постів у tomwoker1
+2025-07-04 20:55:57 - root - INFO - Пошук сторіс tomwoker1
+2025-07-04 20:56:03 - root - WARNING - Не знайдено активних сторіс для tomwoker1
+2025-07-04 20:56:06 - root - INFO - Пошук сторіс tomwoker1 для відповіді
+2025-07-04 20:56:13 - root - WARNING - Не знайдено активних сторіс для відповіді tomwoker1
+2025-07-04 20:56:57 - root - INFO - Затримка між акаунтами: 175.2 секунд
+2025-07-04 20:59:52 - root - INFO - Автоматизація завершена: 0/3 (0.0%)
+2025-07-04 21:00:16 - root - INFO - Драйвер для alexwent2 закрито
+2025-07-04 21:00:16 - root - INFO - Всі драйвери закрито
+2025-07-04 21:07:22 - root - INFO - Логування налаштовано
+2025-07-04 21:07:23 - root - INFO - Завантажено 1 акаунтів
+2025-07-04 21:07:35 - root - INFO - Спроба входу для акаунту: alexwent2
+2025-07-04 21:07:35 - WDM - INFO - ====== WebDriver manager ======
+2025-07-04 21:07:36 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 21:07:36 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 21:07:37 - WDM - INFO - There is no [win64] chromedriver "137.0.7151.119" for browser google-chrome "137.0.7151" in cache
+2025-07-04 21:07:37 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 21:07:37 - WDM - INFO - WebDriver version 137.0.7151.119 selected
+2025-07-04 21:07:37 - WDM - INFO - Modern chrome version https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/win32/chromedriver-win32.zip
+2025-07-04 21:07:37 - WDM - INFO - About to download new driver from https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/win32/chromedriver-win32.zip
+2025-07-04 21:07:38 - WDM - INFO - Driver downloading response is 200
+2025-07-04 21:07:39 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 21:07:39 - WDM - INFO - Driver has been saved in cache [C:\Users\timof\.wdm\drivers\chromedriver\win64\137.0.7151.119]
+2025-07-04 21:07:39 - root - INFO - Використовується ChromeDriver: C:\Users\timof\.wdm\drivers\chromedriver\win64\137.0.7151.119\chromedriver-win32\chromedriver.exe
+2025-07-04 21:07:42 - root - INFO - WebDriver успішно створено для alexwent2
+2025-07-04 21:07:46 - root - WARNING - Капча на головній сторінці
+2025-07-04 21:07:46 - root - WARNING - Виявлено капчу, спроба обходу...
+2025-07-04 21:07:57 - root - INFO - Капча обійдена через повернення назад
+2025-07-04 21:08:05 - root - ERROR - Не знайдено поле для введення логіна
+2025-07-04 21:08:07 - root - INFO - Запуск автоматизації: 1 акаунтів, 1 цілей
+2025-07-04 21:08:07 - root - INFO - Обробка акаунту: alexwent2
+2025-07-04 21:08:07 - root - INFO - Обробка цілі: tomwoker1
+2025-07-04 21:08:07 - root - ERROR - Драйвер для alexwent2 неактивний
+2025-07-04 21:08:16 - root - INFO - Пошук сторіс tomwoker1
+2025-07-04 21:08:16 - root - ERROR - Помилка переходу на головну сторінку: Message: invalid session id
+Stacktrace:
+	GetHandleVerifier [0x0x7a3b03+62899]
+	GetHandleVerifier [0x0x7a3b44+62964]
+	(No symbol) [0x0x5d0f50]
+	(No symbol) [0x0x60c938]
+	(No symbol) [0x0x63e3c6]
+	(No symbol) [0x0x639e72]
+	(No symbol) [0x0x639406]
+	(No symbol) [0x0x5a3a05]
+	(No symbol) [0x0x5a3f5e]
+	(No symbol) [0x0x5a43fd]
+	GetHandleVerifier [0x0xa04793+2556483]
+	GetHandleVerifier [0x0x9ffd02+2537394]
+	GetHandleVerifier [0x0x7ca2fa+220586]
+	GetHandleVerifier [0x0x7baae8+157080]
+	GetHandleVerifier [0x0x7c141d+184013]
+	(No symbol) [0x0x5a36d0]
+	(No symbol) [0x0x5a2f47]
+	GetHandleVerifier [0x0xb3aa2c+3826908]
+	BaseThreadInitThunk [0x0x75b6fcc9+25]
+	RtlGetAppContainerNamedObjectPath [0x0x776e82ae+286]
+	RtlGetAppContainerNamedObjectPath [0x0x776e827e+238]
+
+2025-07-04 21:08:22 - root - INFO - Пошук сторіс tomwoker1 для відповіді
+2025-07-04 21:08:22 - root - ERROR - Помилка переходу на головну сторінку: Message: invalid session id
+Stacktrace:
+	GetHandleVerifier [0x0x7a3b03+62899]
+	GetHandleVerifier [0x0x7a3b44+62964]
+	(No symbol) [0x0x5d0f50]
+	(No symbol) [0x0x60c938]
+	(No symbol) [0x0x63e3c6]
+	(No symbol) [0x0x639e72]
+	(No symbol) [0x0x639406]
+	(No symbol) [0x0x5a3a05]
+	(No symbol) [0x0x5a3f5e]
+	(No symbol) [0x0x5a43fd]
+	GetHandleVerifier [0x0xa04793+2556483]
+	GetHandleVerifier [0x0x9ffd02+2537394]
+	GetHandleVerifier [0x0x7ca2fa+220586]
+	GetHandleVerifier [0x0x7baae8+157080]
+	GetHandleVerifier [0x0x7c141d+184013]
+	(No symbol) [0x0x5a36d0]
+	(No symbol) [0x0x5a2f47]
+	GetHandleVerifier [0x0xb3aa2c+3826908]
+	BaseThreadInitThunk [0x0x75b6fcc9+25]
+	RtlGetAppContainerNamedObjectPath [0x0x776e82ae+286]
+	RtlGetAppContainerNamedObjectPath [0x0x776e827e+238]
+
+2025-07-04 21:08:37 - root - ERROR - Помилка моніторингу акаунту alexwent2: Message: invalid session id
+Stacktrace:
+	GetHandleVerifier [0x0x7a3b03+62899]
+	GetHandleVerifier [0x0x7a3b44+62964]
+	(No symbol) [0x0x5d0f50]
+	(No symbol) [0x0x60c938]
+	(No symbol) [0x0x63e3c6]
+	(No symbol) [0x0x639e72]
+	(No symbol) [0x0x639406]
+	(No symbol) [0x0x5a3a05]
+	(No symbol) [0x0x5a3f5e]
+	(No symbol) [0x0x5a43fd]
+	GetHandleVerifier [0x0xa04793+2556483]
+	GetHandleVerifier [0x0x9ffd02+2537394]
+	GetHandleVerifier [0x0x7ca2fa+220586]
+	GetHandleVerifier [0x0x7baae8+157080]
+	GetHandleVerifier [0x0x7c141d+184013]
+	(No symbol) [0x0x5a36d0]
+	(No symbol) [0x0x5a2f47]
+	GetHandleVerifier [0x0xb3aa2c+3826908]
+	BaseThreadInitThunk [0x0x75b6fcc9+25]
+	RtlGetAppContainerNamedObjectPath [0x0x776e82ae+286]
+	RtlGetAppContainerNamedObjectPath [0x0x776e827e+238]
+
+2025-07-04 21:08:37 - root - INFO - Затримка між акаунтами: 162.8 секунд
+2025-07-04 21:08:46 - root - INFO - Драйвер для alexwent2 закрито
+2025-07-04 21:08:46 - root - INFO - Всі драйвери закрито
+2025-07-04 21:08:47 - root - INFO - Запуск автоматизації: 1 акаунтів, 1 цілей
+2025-07-04 21:08:47 - root - INFO - Обробка акаунту: alexwent2
+2025-07-04 21:08:47 - root - INFO - Обробка цілі: tomwoker1
+2025-07-04 21:08:47 - root - ERROR - Акаунт alexwent2 не залогінений
+2025-07-04 21:08:57 - root - ERROR - Акаунт alexwent2 не залогінений
+2025-07-04 21:09:03 - root - ERROR - Акаунт alexwent2 не залогінений
+2025-07-04 21:09:32 - root - INFO - Затримка між акаунтами: 83.0 секунд
+2025-07-04 21:09:36 - root - INFO - Всі драйвери закрито
+2025-07-04 21:10:09 - root - INFO - Логування налаштовано
+2025-07-04 21:10:10 - root - INFO - Завантажено 1 акаунтів
+2025-07-04 21:10:15 - root - INFO - Спроба входу для акаунту: alexwent2
+2025-07-04 21:10:15 - WDM - INFO - ====== WebDriver manager ======
+2025-07-04 21:10:16 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 21:10:17 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 21:10:17 - WDM - INFO - There is no [win64] chromedriver "137.0.7151.119" for browser google-chrome "137.0.7151" in cache
+2025-07-04 21:10:17 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 21:10:18 - WDM - INFO - WebDriver version 137.0.7151.119 selected
+2025-07-04 21:10:18 - WDM - INFO - Modern chrome version https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/win32/chromedriver-win32.zip
+2025-07-04 21:10:18 - WDM - INFO - About to download new driver from https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/win32/chromedriver-win32.zip
+2025-07-04 21:10:18 - WDM - INFO - Driver downloading response is 200
+2025-07-04 21:10:19 - WDM - INFO - Get LATEST chromedriver version for google-chrome
+2025-07-04 21:10:20 - WDM - INFO - Driver has been saved in cache [C:\Users\timof\.wdm\drivers\chromedriver\win64\137.0.7151.119]
+2025-07-04 21:10:20 - root - INFO - Використовується ChromeDriver: C:\Users\timof\.wdm\drivers\chromedriver\win64\137.0.7151.119\chromedriver-win32\chromedriver.exe
+2025-07-04 21:10:21 - root - INFO - WebDriver успішно створено для alexwent2
+2025-07-04 21:10:27 - root - WARNING - Капча на головній сторінці
+2025-07-04 21:10:27 - root - WARNING - Виявлено капчу, спроба обходу...
+2025-07-04 21:10:38 - root - INFO - Капча обійдена через повернення назад
+2025-07-04 21:10:38 - root - ERROR - Помилка завантаження сторінки входу: Message: invalid session id
+Stacktrace:
+	GetHandleVerifier [0x0x9f3b03+62899]
+	GetHandleVerifier [0x0x9f3b44+62964]
+	(No symbol) [0x0x820f50]
+	(No symbol) [0x0x85c938]
+	(No symbol) [0x0x88e3c6]
+	(No symbol) [0x0x889e72]
+	(No symbol) [0x0x889406]
+	(No symbol) [0x0x7f3a05]
+	(No symbol) [0x0x7f3f5e]
+	(No symbol) [0x0x7f43fd]
+	GetHandleVerifier [0x0xc54793+2556483]
+	GetHandleVerifier [0x0xc4fd02+2537394]
+	GetHandleVerifier [0x0xa1a2fa+220586]
+	GetHandleVerifier [0x0xa0aae8+157080]
+	GetHandleVerifier [0x0xa1141d+184013]
+	(No symbol) [0x0x7f36d0]
+	(No symbol) [0x0x7f2f47]
+	GetHandleVerifier [0x0xd8aa2c+3826908]
+	BaseThreadInitThunk [0x0x75b6fcc9+25]
+	RtlGetAppContainerNamedObjectPath [0x0x776e82ae+286]
+	RtlGetAppContainerNamedObjectPath [0x0x776e827e+238]
+
+2025-07-04 21:10:52 - root - INFO - Запуск автоматизації: 1 акаунтів, 1 цілей
+2025-07-04 21:10:52 - root - INFO - Обробка акаунту: alexwent2
+2025-07-04 21:10:52 - root - INFO - Обробка цілі: tomwoker1
+2025-07-04 21:10:52 - root - ERROR - Помилка переходу на головну сторінку: Message: invalid session id
+Stacktrace:
+	GetHandleVerifier [0x0x9f3b03+62899]
+	GetHandleVerifier [0x0x9f3b44+62964]
+	(No symbol) [0x0x820f50]
+	(No symbol) [0x0x85c938]
+	(No symbol) [0x0x88e3c6]
+	(No symbol) [0x0x889e72]
+	(No symbol) [0x0x889406]
+	(No symbol) [0x0x7f3a05]
+	(No symbol) [0x0x7f3f5e]
+	(No symbol) [0x0x7f43fd]
+	GetHandleVerifier [0x0xc54793+2556483]
+	GetHandleVerifier [0x0xc4fd02+2537394]
+	GetHandleVerifier [0x0xa1a2fa+220586]
+	GetHandleVerifier [0x0xa0aae8+157080]
+	GetHandleVerifier [0x0xa1141d+184013]
+	(No symbol) [0x0x7f36d0]
+	(No symbol) [0x0x7f2f47]
+	GetHandleVerifier [0x0xd8aa2c+3826908]
+	BaseThreadInitThunk [0x0x75b6fcc9+25]
+	RtlGetAppContainerNamedObjectPath [0x0x776e82ae+286]
+	RtlGetAppContainerNamedObjectPath [0x0x776e827e+238]
+
+2025-07-04 21:10:52 - root - INFO - Перехід на профіль tomwoker1
+2025-07-04 21:10:52 - root - ERROR - Помилка переходу на профіль: Message: invalid session id
+Stacktrace:
+	GetHandleVerifier [0x0x9f3b03+62899]
+	GetHandleVerifier [0x0x9f3b44+62964]
+	(No symbol) [0x0x820f50]
+	(No symbol) [0x0x85c938]
+	(No symbol) [0x0x88e3c6]
+	(No symbol) [0x0x889e72]
+	(No symbol) [0x0x889406]
+	(No symbol) [0x0x7f3a05]
+	(No symbol) [0x0x7f3f5e]
+	(No symbol) [0x0x7f43fd]
+	GetHandleVerifier [0x0xc54793+2556483]
+	GetHandleVerifier [0x0xc4fd02+2537394]
+	GetHandleVerifier [0x0xa1a2fa+220586]
+	GetHandleVerifier [0x0xa0aae8+157080]
+	GetHandleVerifier [0x0xa1141d+184013]
+	(No symbol) [0x0x7f36d0]
+	(No symbol) [0x0x7f2f47]
+	GetHandleVerifier [0x0xd8aa2c+3826908]
+	BaseThreadInitThunk [0x0x75b6fcc9+25]
+	RtlGetAppContainerNamedObjectPath [0x0x776e82ae+286]
+	RtlGetAppContainerNamedObjectPath [0x0x776e827e+238]
+
+2025-07-04 21:10:59 - root - ERROR - Помилка переходу на головну сторінку: Message: invalid session id
+Stacktrace:
+	GetHandleVerifier [0x0x9f3b03+62899]
+	GetHandleVerifier [0x0x9f3b44+62964]
+	(No symbol) [0x0x820f50]
+	(No symbol) [0x0x85c938]
+	(No symbol) [0x0x88e3c6]
+	(No symbol) [0x0x889e72]
+	(No symbol) [0x0x889406]
+	(No symbol) [0x0x7f3a05]
+	(No symbol) [0x0x7f3f5e]
+	(No symbol) [0x0x7f43fd]
+	GetHandleVerifier [0x0xc54793+2556483]
+	GetHandleVerifier [0x0xc4fd02+2537394]
+	GetHandleVerifier [0x0xa1a2fa+220586]
+	GetHandleVerifier [0x0xa0aae8+157080]
+	GetHandleVerifier [0x0xa1141d+184013]
+	(No symbol) [0x0x7f36d0]
+	(No symbol) [0x0x7f2f47]
+	GetHandleVerifier [0x0xd8aa2c+3826908]
+	BaseThreadInitThunk [0x0x75b6fcc9+25]
+	RtlGetAppContainerNamedObjectPath [0x0x776e82ae+286]
+	RtlGetAppContainerNamedObjectPath [0x0x776e827e+238]
+
+2025-07-04 21:10:59 - root - INFO - Пошук сторіс tomwoker1
+2025-07-04 21:10:59 - root - ERROR - Помилка переходу на головну сторінку: Message: invalid session id
+Stacktrace:
+	GetHandleVerifier [0x0x9f3b03+62899]
+	GetHandleVerifier [0x0x9f3b44+62964]
+	(No symbol) [0x0x820f50]
+	(No symbol) [0x0x85c938]
+	(No symbol) [0x0x88e3c6]
+	(No symbol) [0x0x889e72]
+	(No symbol) [0x0x889406]
+	(No symbol) [0x0x7f3a05]
+	(No symbol) [0x0x7f3f5e]
+	(No symbol) [0x0x7f43fd]
+	GetHandleVerifier [0x0xc54793+2556483]
+	GetHandleVerifier [0x0xc4fd02+2537394]
+	GetHandleVerifier [0x0xa1a2fa+220586]
+	GetHandleVerifier [0x0xa0aae8+157080]
+	GetHandleVerifier [0x0xa1141d+184013]
+	(No symbol) [0x0x7f36d0]
+	(No symbol) [0x0x7f2f47]
+	GetHandleVerifier [0x0xd8aa2c+3826908]
+	BaseThreadInitThunk [0x0x75b6fcc9+25]
+	RtlGetAppContainerNamedObjectPath [0x0x776e82ae+286]
+	RtlGetAppContainerNamedObjectPath [0x0x776e827e+238]
+
+2025-07-04 21:11:04 - root - INFO - Пошук сторіс tomwoker1 для відповіді
+2025-07-04 21:11:04 - root - ERROR - Помилка переходу на головну сторінку: Message: invalid session id
+Stacktrace:
+	GetHandleVerifier [0x0x9f3b03+62899]
+	GetHandleVerifier [0x0x9f3b44+62964]
+	(No symbol) [0x0x820f50]
+	(No symbol) [0x0x85c938]
+	(No symbol) [0x0x88e3c6]
+	(No symbol) [0x0x889e72]
+	(No symbol) [0x0x889406]
+	(No symbol) [0x0x7f3a05]
+	(No symbol) [0x0x7f3f5e]
+	(No symbol) [0x0x7f43fd]
+	GetHandleVerifier [0x0xc54793+2556483]
+	GetHandleVerifier [0x0xc4fd02+2537394]
+	GetHandleVerifier [0x0xa1a2fa+220586]
+	GetHandleVerifier [0x0xa0aae8+157080]
+	GetHandleVerifier [0x0xa1141d+184013]
+	(No symbol) [0x0x7f36d0]
+	(No symbol) [0x0x7f2f47]
+	GetHandleVerifier [0x0xd8aa2c+3826908]
+	BaseThreadInitThunk [0x0x75b6fcc9+25]
+	RtlGetAppContainerNamedObjectPath [0x0x776e82ae+286]
+	RtlGetAppContainerNamedObjectPath [0x0x776e827e+238]
+
+2025-07-04 21:11:33 - root - ERROR - Помилка моніторингу акаунту alexwent2: Message: invalid session id
+Stacktrace:
+	GetHandleVerifier [0x0x9f3b03+62899]
+	GetHandleVerifier [0x0x9f3b44+62964]
+	(No symbol) [0x0x820f50]
+	(No symbol) [0x0x85c938]
+	(No symbol) [0x0x88e3c6]
+	(No symbol) [0x0x889e72]
+	(No symbol) [0x0x889406]
+	(No symbol) [0x0x7f3a05]
+	(No symbol) [0x0x7f3f5e]
+	(No symbol) [0x0x7f43fd]
+	GetHandleVerifier [0x0xc54793+2556483]
+	GetHandleVerifier [0x0xc4fd02+2537394]
+	GetHandleVerifier [0x0xa1a2fa+220586]
+	GetHandleVerifier [0x0xa0aae8+157080]
+	GetHandleVerifier [0x0xa1141d+184013]
+	(No symbol) [0x0x7f36d0]
+	(No symbol) [0x0x7f2f47]
+	GetHandleVerifier [0x0xd8aa2c+3826908]
+	BaseThreadInitThunk [0x0x75b6fcc9+25]
+	RtlGetAppContainerNamedObjectPath [0x0x776e82ae+286]
+	RtlGetAppContainerNamedObjectPath [0x0x776e827e+238]
+
+2025-07-04 21:11:33 - root - INFO - Затримка між акаунтами: 71.9 секунд
+2025-07-04 21:12:45 - root - INFO - Автоматизація завершена: 0/3 (0.0%)
+2025-07-04 21:17:17 - root - INFO - Драйвер для alexwent2 закрито
+2025-07-04 21:17:17 - root - INFO - Всі драйвери закрито
+2025-07-04 21:17:28 - root - INFO - Логування налаштовано
+2025-07-04 21:17:28 - root - INFO - Завантажено 1 акаунтів
+2025-07-04 21:19:55 - root - INFO - ⚡ Всі драйвери закрито

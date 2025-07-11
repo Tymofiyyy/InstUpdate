@@ -1,0 +1,50 @@
+{
+  "captcha_api_key": "",
+  "proxy_list": [],
+  "max_accounts": 10,
+  "daily_action_limit": 1000,
+  "action_delays": {
+    "like": [
+      2,
+      5
+    ],
+    "comment": [
+      3,
+      8
+    ],
+    "story_reply": [
+      2,
+      6
+    ]
+  },
+  "user_agents": [
+    "Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36",
+    "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.210 Mobile Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1"
+  ],
+  "story_replies": [
+    "🔥🔥🔥",
+    "❤️",
+    "Круто!",
+    "👍",
+    "Супер!",
+    "💯",
+    "🙌",
+    "Класно!",
+    "👏",
+    "Wow!",
+    "Дуже цікаво!",
+    "Топ контент!",
+    "Красиво!"
+  ],
+  "automation_settings": {
+    "run_schedule": "09:00-22:00",
+    "break_duration": [
+      30,
+      120
+    ],
+    "max_actions_per_hour": 200,
+    "rotate_accounts": true,
+    "use_proxy_rotation": true
+  }
+}

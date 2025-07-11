@@ -1,0 +1,15 @@
+{
+  "browser": "Dolphin Anty",
+  "headless": false,
+  "delays": {
+    "Min delay between actions": 2.0,
+    "Max delay between actions": 5.0,
+    "Delay between users": 30.0,
+    "Human typing speed": 0.1
+  },
+  "limits": {
+    "Max actions per day": 200,
+    "Max users per session": 50,
+    "Max parallel accounts": 5
+  }
+}

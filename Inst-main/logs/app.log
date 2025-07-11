@@ -1,0 +1,33 @@
+2025-07-10 12:45:13,409 - root - INFO - 🚀 Instagram Bot запущено
+2025-07-10 12:45:13,409 - root - INFO - 📁 Робоча директорія: c:\Users\timof\Downloads\Inst-main
+2025-07-10 12:45:36,193 - InstagramBot_alexwent2 - INFO - 🚀 Початок багатокористувацької автоматизації
+2025-07-10 12:45:36,193 - InstagramBot_alexwent2 - INFO - Знайдено 1 валідних користувачів: ['tomwoker1']
+2025-07-10 12:45:36,228 - InstagramBot_alexwent2 - INFO - Логін alexwent2 пройшов валідацію
+2025-07-10 12:45:46,906 - InstagramBot_alexwent2 - INFO - Виявлено тип сторінки входу: new_layout
+2025-07-10 12:45:46,906 - InstagramBot_alexwent2 - INFO - Використання методу для нової версії сторінки
+2025-07-10 12:45:46,937 - InstagramBot_alexwent2 - INFO - Знайдено поле username: input[name='username']
+2025-07-10 12:45:46,954 - InstagramBot_alexwent2 - INFO - Знайдено поле password: input[name='password']
+2025-07-10 12:45:46,955 - InstagramBot_alexwent2 - INFO - Введення username...
+2025-07-10 12:45:49,967 - InstagramBot_alexwent2 - INFO - Введення password...
+2025-07-10 12:45:53,546 - InstagramBot_alexwent2 - INFO - Знайдено кнопку входу: button[type='submit']
+2025-07-10 12:45:53,546 - InstagramBot_alexwent2 - INFO - Натискання кнопки для входу...
+2025-07-10 12:45:53,684 - InstagramBot_alexwent2 - INFO - Очікування результату входу...
+2025-07-10 12:45:59,600 - InstagramBot_alexwent2 - INFO - URL змінився на: https://www.instagram.com/challenge/?next=https%3A%2F%2Fwww.instagram.com%2Faccounts%2Fonetap%2F%3Fnext%3D%252F%26__coig_challenged%3D1#
+2025-07-10 12:45:59,601 - InstagramBot_alexwent2 - WARNING - Потрібно пройти challenge
+2025-07-10 12:45:59,629 - InstagramBot_alexwent2 - ERROR - ❌ Помилка входу в систему
+2025-07-10 12:46:04,888 - InstagramBot_alexwent2 - INFO - 🚀 Початок багатокористувацької автоматизації
+2025-07-10 12:46:04,908 - InstagramBot_alexwent2 - INFO - Знайдено 1 валідних користувачів: ['tomwoker1']
+2025-07-10 12:46:04,936 - InstagramBot_alexwent2 - INFO - Логін alexwent2 пройшов валідацію
+2025-07-10 12:46:15,459 - InstagramBot_alexwent2 - INFO - Виявлено тип сторінки входу: old_layout
+2025-07-10 12:46:15,482 - InstagramBot_alexwent2 - INFO - Використання покращеного методу для старої версії сторінки
+2025-07-10 12:46:17,684 - InstagramBot_alexwent2 - INFO - Знайдено поле username: input[aria-label*='Username']
+2025-07-10 12:46:17,720 - InstagramBot_alexwent2 - INFO - Знайдено поле password: input[aria-label*='Password']
+2025-07-10 12:46:17,786 - InstagramBot_alexwent2 - INFO - Введення username (стара версія)...
+2025-07-10 12:46:22,671 - InstagramBot_alexwent2 - INFO - Введення password (стара версія)...
+2025-07-10 12:46:26,945 - InstagramBot_alexwent2 - INFO - Знайдено кнопку входу: div[role='button'][tabindex='0']:has(div[dir='auto']), текст: 'Log in'
+2025-07-10 12:46:26,962 - InstagramBot_alexwent2 - INFO - Натискання кнопки входу (стара версія)...
+2025-07-10 12:46:27,865 - InstagramBot_alexwent2 - INFO - Використано звичайний клік
+2025-07-10 12:46:27,875 - InstagramBot_alexwent2 - INFO - Очікування результату входу...
+2025-07-10 12:46:38,823 - InstagramBot_alexwent2 - INFO - URL змінився на: https://www.instagram.com/challenge/?next=https%3A%2F%2Fwww.instagram.com%2F%3Fdeoia%3D1%26__coig_challenged%3D1#
+2025-07-10 12:46:38,845 - InstagramBot_alexwent2 - WARNING - Потрібно пройти challenge
+2025-07-10 12:46:38,875 - InstagramBot_alexwent2 - ERROR - ❌ Помилка входу в систему
