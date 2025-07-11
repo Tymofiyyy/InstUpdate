@@ -14,6 +14,7 @@ import logging
 from datetime import datetime, timedelta
 import hashlib
 import base64
+import threading
 
 class ProxyManager:
     """Менеджер проксі серверів"""
@@ -614,3 +615,470 @@ def generate_device_fingerprint():
     fingerprint_hash = hashlib.md5(fingerprint_string.encode()).hexdigest()
     
     return fingerprint_hash, fingerprint_data 
+
+class ParallelBotManager:
+    """Менеджер для паралельної роботи кількох ботів"""
+    
+    def __init__(self, max_parallel=5):
+        self.max_parallel = max_parallel
+        self.active_bots = {}
+        self.bot_threads = {}
+        self.results = {}
+        self.lock = threading.Lock()
+        self.start_time = datetime.now()
+        self.logger = logging.getLogger('ParallelBotManager')
+        self.resource_monitor = ResourceMonitor()
+        
+    def add_bot(self, account_data):
+        """Додавання бота до черги"""
+        username = account_data['username']
+        
+        with self.lock:
+            if username in self.active_bots:
+                self.logger.warning(f"Бот {username} вже активний")
+                return False
+                
+            self.active_bots[username] = {
+                'account_data': account_data,
+                'status': 'pending',
+                'start_time': None,
+                'end_time': None,
+                'actions_completed': 0,
+                'errors': []
+            }
+            
+        return True
+        
+    def run_bots(self, target_users, messages, actions_config=None):
+        """Запуск ботів паралельно з управлінням ресурсами"""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        import threading
+        
+        total_accounts = len(self.active_bots)
+        self.logger.info(f"🚀 Запуск {total_accounts} ботів (макс. паралельно: {self.max_parallel})")
+        
+        # Створюємо пул потоків
+        with ThreadPoolExecutor(max_workers=self.max_parallel) as executor:
+            futures = {}
+            
+            # Розбиваємо акаунти на батчі
+            accounts_list = list(self.active_bots.items())
+            
+            for i in range(0, len(accounts_list), self.max_parallel):
+                batch = accounts_list[i:i + self.max_parallel]
+                
+                # Запускаємо батч
+                for username, bot_info in batch:
+                    if self.resource_monitor.can_start_new_bot():
+                        future = executor.submit(
+                            self._run_single_bot,
+                            username,
+                            bot_info['account_data'],
+                            target_users,
+                            messages,
+                            actions_config
+                        )
+                        futures[future] = username
+                        
+                        # Затримка між запусками
+                        time.sleep(Config.PARALLEL_SETTINGS['account_start_delay'])
+                    else:
+                        self.logger.warning(f"⚠️ Недостатньо ресурсів для {username}")
+                        bot_info['status'] = 'skipped'
+                        bot_info['errors'].append("Insufficient resources")
+                
+                # Чекаємо завершення батча перед запуском наступного
+                if i + self.max_parallel < len(accounts_list):
+                    self.logger.info(f"⏳ Очікування завершення батча перед наступним...")
+                    for future in as_completed(futures):
+                        username = futures[future]
+                        try:
+                            result = future.result()
+                            self._process_bot_result(username, result)
+                        except Exception as e:
+                            self._handle_bot_error(username, e)
+                    
+                    # Очищуємо futures для наступного батча
+                    futures.clear()
+                    
+                    # Пауза між батчами
+                    batch_delay = Config.MULTI_USER_CONFIG['batch_processing']['batch_delay']
+                    self.logger.info(f"⏰ Пауза між батчами: {batch_delay} сек")
+                    time.sleep(batch_delay)
+            
+            # Обробка останнього батча
+            for future in as_completed(futures):
+                username = futures[future]
+                try:
+                    result = future.result()
+                    self._process_bot_result(username, result)
+                except Exception as e:
+                    self._handle_bot_error(username, e)
+        
+        # Генерація звіту
+        return self._generate_report()
+        
+    def _run_single_bot(self, username, account_data, target_users, messages, actions_config):
+        """Запуск одного бота в окремому потоці"""
+        from instagram_bot import InstagramBot
+        
+        bot = None
+        try:
+            # Оновлення статусу
+            with self.lock:
+                self.active_bots[username]['status'] = 'running'
+                self.active_bots[username]['start_time'] = datetime.now()
+            
+            # Створення та запуск бота
+            bot = InstagramBot(
+                account_data['username'],
+                account_data['password'],
+                account_data.get('proxy'),
+                account_data.get('browser_type', 'Chrome')
+            )
+            
+            # Встановлення обмежень ресурсів
+            self.resource_monitor.set_bot_limits(username, bot)
+            
+            # Запуск автоматизації
+            success = bot.run_automation_multiple_users(
+                target_users,
+                messages,
+                actions_config
+            )
+            
+            # Збір статистики
+            stats = self._collect_bot_stats(bot)
+            
+            return {
+                'success': success,
+                'stats': stats,
+                'errors': []
+            }
+            
+        except Exception as e:
+            self.logger.error(f"❌ Помилка бота {username}: {e}")
+            return {
+                'success': False,
+                'stats': {},
+                'errors': [str(e)]
+            }
+        finally:
+            # Закриття бота
+            if bot:
+                try:
+                    bot.close()
+                except:
+                    pass
+            
+            # Оновлення статусу
+            with self.lock:
+                self.active_bots[username]['status'] = 'completed'
+                self.active_bots[username]['end_time'] = datetime.now()
+                
+    def _process_bot_result(self, username, result):
+        """Обробка результату роботи бота"""
+        with self.lock:
+            bot_info = self.active_bots[username]
+            bot_info['success'] = result['success']
+            bot_info['stats'] = result.get('stats', {})
+            bot_info['errors'].extend(result.get('errors', []))
+            
+            if result['success']:
+                self.logger.info(f"✅ Бот {username} завершив успішно")
+            else:
+                self.logger.error(f"❌ Бот {username} завершив з помилками")
+                
+    def _handle_bot_error(self, username, error):
+        """Обробка помилки бота"""
+        with self.lock:
+            bot_info = self.active_bots[username]
+            bot_info['status'] = 'error'
+            bot_info['success'] = False
+            bot_info['errors'].append(str(error))
+            bot_info['end_time'] = datetime.now()
+            
+        self.logger.error(f"❌ Критична помилка для {username}: {error}")
+        
+    def _collect_bot_stats(self, bot):
+        """Збір статистики роботи бота"""
+        stats = {
+            'likes': 0,
+            'comments': 0,
+            'follows': 0,
+            'stories': 0,
+            'messages': 0,
+            'total_actions': 0
+        }
+        
+        # Тут можна додати логіку збору статистики з бота
+        # Наприклад, через його внутрішні лічильники
+        
+        return stats
+        
+    def _generate_report(self):
+        """Генерація детального звіту"""
+        report = {
+            'summary': {
+                'total_accounts': len(self.active_bots),
+                'successful': 0,
+                'failed': 0,
+                'skipped': 0,
+                'total_time': (datetime.now() - self.start_time).total_seconds()
+            },
+            'accounts': {},
+            'statistics': {
+                'total_likes': 0,
+                'total_comments': 0,
+                'total_follows': 0,
+                'total_stories': 0,
+                'total_messages': 0
+            }
+        }
+        
+        with self.lock:
+            for username, bot_info in self.active_bots.items():
+                # Підрахунок статусів
+                if bot_info['status'] == 'completed' and bot_info.get('success'):
+                    report['summary']['successful'] += 1
+                elif bot_info['status'] == 'error' or not bot_info.get('success'):
+                    report['summary']['failed'] += 1
+                elif bot_info['status'] == 'skipped':
+                    report['summary']['skipped'] += 1
+                
+                # Збір статистики
+                stats = bot_info.get('stats', {})
+                for key in ['likes', 'comments', 'follows', 'stories', 'messages']:
+                    report['statistics'][f'total_{key}'] += stats.get(key, 0)
+                
+                # Інформація про акаунт
+                report['accounts'][username] = {
+                    'status': bot_info['status'],
+                    'success': bot_info.get('success', False),
+                    'start_time': bot_info['start_time'].isoformat() if bot_info['start_time'] else None,
+                    'end_time': bot_info['end_time'].isoformat() if bot_info['end_time'] else None,
+                    'duration': (bot_info['end_time'] - bot_info['start_time']).total_seconds() 
+                               if bot_info['start_time'] and bot_info['end_time'] else None,
+                    'stats': stats,
+                    'errors': bot_info['errors']
+                }
+        
+        # Розрахунок показників
+        report['summary']['success_rate'] = (
+            report['summary']['successful'] / report['summary']['total_accounts'] * 100
+            if report['summary']['total_accounts'] > 0 else 0
+        )
+        
+        report['summary']['avg_time_per_account'] = (
+            report['summary']['total_time'] / report['summary']['total_accounts']
+            if report['summary']['total_accounts'] > 0 else 0
+        )
+        
+        # Виведення звіту
+        self._print_report(report)
+        
+        # Збереження звіту
+        self._save_report(report)
+        
+        return report
+        
+    def _print_report(self, report):
+        """Виведення звіту в консоль"""
+        self.logger.info("\n" + "=" * 60)
+        self.logger.info("📊 ЗВІТ ПАРАЛЕЛЬНОЇ РОБОТИ БОТІВ")
+        self.logger.info("=" * 60)
+        
+        summary = report['summary']
+        self.logger.info(f"👥 Всього акаунтів: {summary['total_accounts']}")
+        self.logger.info(f"✅ Успішно: {summary['successful']}")
+        self.logger.info(f"❌ З помилками: {summary['failed']}")
+        self.logger.info(f"⏭️ Пропущено: {summary['skipped']}")
+        self.logger.info(f"📈 Успішність: {summary['success_rate']:.1f}%")
+        self.logger.info(f"⏱️ Загальний час: {summary['total_time']:.1f} сек")
+        self.logger.info(f"⏳ Середній час на акаунт: {summary['avg_time_per_account']:.1f} сек")
+        
+        self.logger.info("\n📊 СТАТИСТИКА ДІЙ:")
+        stats = report['statistics']
+        self.logger.info(f"❤️ Лайків: {stats['total_likes']}")
+        self.logger.info(f"💬 Коментарів: {stats['total_comments']}")
+        self.logger.info(f"👥 Підписок: {stats['total_follows']}")
+        self.logger.info(f"📱 Сторіс: {stats['total_stories']}")
+        self.logger.info(f"📩 Повідомлень: {stats['total_messages']}")
+        
+        self.logger.info("=" * 60)
+        
+    def _save_report(self, report):
+        """Збереження звіту у файл"""
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = Config.DATA_DIR / f"parallel_report_{timestamp}.json"
+            
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(report, f, indent=2, ensure_ascii=False)
+                
+            self.logger.info(f"💾 Звіт збережено: {filename}")
+            
+        except Exception as e:
+            self.logger.error(f"Помилка збереження звіту: {e}")
+            
+    def stop_all_bots(self):
+        """Зупинка всіх активних ботів"""
+        self.logger.warning("⏹️ Зупинка всіх ботів...")
+        
+        with self.lock:
+            for username in self.active_bots:
+                if self.active_bots[username]['status'] == 'running':
+                    # Тут можна додати логіку примусової зупинки
+                    self.active_bots[username]['status'] = 'stopped'
+                    
+        self.logger.info("✅ Всі боти зупинені")
+
+
+class ResourceMonitor:
+    """Моніторинг ресурсів для паралельних ботів"""
+    
+    def __init__(self):
+        self.cpu_limit = Config.PARALLEL_SETTINGS.get('cpu_limit_per_account', 25)
+        self.memory_limit = Config.PARALLEL_SETTINGS.get('memory_limit_per_account', 1024)
+        self.active_processes = {}
+        
+    def can_start_new_bot(self):
+        """Перевірка можливості запуску нового бота"""
+        try:
+            import psutil
+            
+            # Перевірка CPU
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            if cpu_percent > 80:
+                logging.warning(f"⚠️ Високе навантаження CPU: {cpu_percent}%")
+                return False
+            
+            # Перевірка пам'яті
+            memory = psutil.virtual_memory()
+            if memory.percent > 85:
+                logging.warning(f"⚠️ Високе використання пам'яті: {memory.percent}%")
+                return False
+            
+            # Перевірка вільної пам'яті
+            available_mb = memory.available / 1024 / 1024
+            if available_mb < self.memory_limit:
+                logging.warning(f"⚠️ Недостатньо вільної пам'яті: {available_mb:.0f} MB")
+                return False
+            
+            return True
+            
+        except ImportError:
+            # Якщо psutil не встановлено, дозволяємо запуск
+            return True
+        except Exception as e:
+            logging.error(f"Помилка перевірки ресурсів: {e}")
+            return True
+            
+    def set_bot_limits(self, username, bot):
+        """Встановлення обмежень для бота"""
+        try:
+            import psutil
+            
+            # Тут можна додати логіку обмеження ресурсів для процесу
+            # Наприклад, через nice/ionice на Linux або Job Objects на Windows
+            
+            self.active_processes[username] = {
+                'bot': bot,
+                'start_time': datetime.now(),
+                'cpu_limit': self.cpu_limit,
+                'memory_limit': self.memory_limit
+            }
+            
+        except:
+            pass
+            
+    def monitor_resources(self):
+        """Моніторинг використання ресурсів"""
+        try:
+            import psutil
+            
+            stats = {
+                'cpu_percent': psutil.cpu_percent(interval=0.1),
+                'memory_percent': psutil.virtual_memory().percent,
+                'disk_percent': psutil.disk_usage('/').percent,
+                'active_bots': len(self.active_processes)
+            }
+            
+            return stats
+            
+        except:
+            return {}
+
+
+class BatchProcessor:
+    """Обробка користувачів батчами"""
+    
+    def __init__(self, batch_size=10):
+        self.batch_size = batch_size
+        self.processed = 0
+        self.total = 0
+        self.start_time = datetime.now()
+        
+    def process_users_in_batches(self, users, process_func, randomize=True):
+        """Обробка користувачів батчами з прогресом"""
+        self.total = len(users)
+        
+        if randomize:
+            users = users.copy()
+            random.shuffle(users)
+            
+        results = []
+        
+        for i in range(0, len(users), self.batch_size):
+            batch = users[i:i + self.batch_size]
+            batch_num = (i // self.batch_size) + 1
+            total_batches = (len(users) + self.batch_size - 1) // self.batch_size
+            
+            logging.info(f"📦 Обробка батча {batch_num}/{total_batches}")
+            
+            for user in batch:
+                try:
+                    result = process_func(user)
+                    results.append(result)
+                    self.processed += 1
+                    
+                    # Прогрес
+                    progress = (self.processed / self.total) * 100
+                    elapsed = (datetime.now() - self.start_time).total_seconds()
+                    eta = (elapsed / self.processed) * (self.total - self.processed) if self.processed > 0 else 0
+                    
+                    logging.info(f"📊 Прогрес: {self.processed}/{self.total} ({progress:.1f}%) - ETA: {eta:.0f} сек")
+                    
+                except Exception as e:
+                    logging.error(f"Помилка обробки {user}: {e}")
+                    results.append(None)
+                    
+            # Пауза між батчами
+            if i + self.batch_size < len(users):
+                delay = random.uniform(
+                    Config.MULTI_USER_CONFIG['batch_processing']['batch_delay'] * 0.8,
+                    Config.MULTI_USER_CONFIG['batch_processing']['batch_delay'] * 1.2
+                )
+                logging.info(f"⏳ Пауза між батчами: {delay:.0f} сек")
+                time.sleep(delay)
+                
+def generate_device_fingerprint():
+    """Генерація відбитка пристрою"""
+    device = Config.get_random_device()
+    user_agent = device['user_agent']
+    
+    # Створення унікального відбитка
+    fingerprint_data = {
+        'user_agent': user_agent,
+        'screen_resolution': f"{device['width']}x{device['height']}",
+        'pixel_ratio': device['pixel_ratio'],
+        'timezone': random.choice(['Europe/Kiev', 'Europe/Moscow', 'Europe/Warsaw']),
+        'language': 'uk-UA',
+        'platform': 'iPhone' if 'iPhone' in user_agent else 'Android'
+    }
+    
+    # Хешування відбитка
+    fingerprint_string = json.dumps(fingerprint_data, sort_keys=True)
+    fingerprint_hash = hashlib.md5(fingerprint_string.encode()).hexdigest()
+    
+    return fingerprint_hash, fingerprint_data
