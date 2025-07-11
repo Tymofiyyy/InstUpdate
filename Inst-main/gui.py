@@ -815,21 +815,43 @@ class InstagramBotGUI:
             
     def start_single_account(self, username):
         """Запуск одного акаунта"""
+
         account = self.accounts[username]
-        
-        # Оновлення UI
+
+        # 🔄 Оновлення UI
         account['status_indicator'].configure(text_color=self.colors['success'])
         account['status_label'].configure(text="Running")
         account['start_btn'].configure(text="⏸", fg_color=self.colors['warning'])
         account['is_running'] = True
-        
-        # Запуск бота в окремому потоці
+
         def run_bot():
             try:
-                # Отримання налаштувань
-                targets = self.targets_text.get("1.0", "end").strip()
+                from utils import TargetDistributor
+                from instagram_bot import InstagramBot
+
+                # ✅ 1. Отримання всіх таргетів
+                all_targets = self.targets_text.get("1.0", "end").strip()
+                parsed_targets = self.parse_targets(all_targets)
+                account_usernames = list(self.accounts.keys())
+
+                # ✅ 2. Розподіл таргетів між акаунтами (тільки 1 раз)
+                if not hasattr(self, 'target_distributor'):
+                    distributor = TargetDistributor()
+                    distributor.distribute_targets(parsed_targets, account_usernames)
+                    self.target_distributor = distributor
+                else:
+                    distributor = self.target_distributor
+
+                # ✅ 3. Отримання таргетів для поточного акаунта
+                targets_for_account = distributor.get_targets_for_account(username)
+                if not targets_for_account:
+                    self.log_message(f"⚠️ Немає таргетів для акаунта {username}", "warning")
+                    return
+
+                self.log_message(f"🎯 Акаунт {username} отримав таргети: {', '.join(targets_for_account)}", "info")
+
+                # ✅ 4. Отримання повідомлень та налаштувань дій
                 messages = self.get_messages()
-                
                 actions_config = {
                     'like_posts': self.like_posts_var.get(),
                     'like_stories': self.like_stories_var.get(),
@@ -837,42 +859,42 @@ class InstagramBotGUI:
                     'send_direct_message': self.send_dm_var.get(),
                     'posts_count': self.posts_count_var.get()
                 }
-                
-                # Створення бота з вибраним браузером
+
+                # ✅ 5. Визначення типу браузера
                 browser_type = self.browser_var.get()
-                
-                # Імпорт бота
-                from instagram_bot import InstagramBot
-                
+
+                # ✅ 6. Створення бота
                 bot = InstagramBot(
-                    username,
-                    account['password'],
-                    account['proxy'],
+                    username=username,
+                    password=account['password'],
+                    proxy=account['proxy'],
                     browser_type=browser_type
                 )
-                
+
                 self.running_bots[username] = bot
-                
-                # Підключення логування
+
+                # ✅ 7. Логування
                 self.setup_bot_logging(bot, username)
-                
-                # Запуск автоматизації
-                success = bot.run_automation_multiple_users(targets, messages, actions_config)
-                
-                # Оновлення статистики
+
+                # ✅ 8. Запуск автоматизації
+                success = bot.run_automation_multiple_users(targets_for_account, messages, actions_config)
+
+                # ✅ 9. Оновлення статистики
                 self.update_account_stats(username, success)
-                
+
             except Exception as e:
                 self.log_message(f"❌ Error for {username}: {e}", "error")
+
             finally:
-                # Оновлення UI після завершення
+                # ✅ Завершення акаунта — оновлення UI
                 self.root.after(0, lambda: self.stop_single_account(username))
-        
-        # Запуск в ThreadPoolExecutor для паралельної роботи
+
+        # 🔁 Запуск у потоці
         self.bot_threads[username] = self.executor.submit(run_bot)
-        
-        # Оновлення лічильника активних акаунтів
+
+        # 🔢 Оновлення лічильника активних акаунтів
         self.update_active_accounts_count()
+
         
     def stop_single_account(self, username):
         """Зупинка одного акаунта"""
@@ -938,7 +960,30 @@ class InstagramBotGUI:
             self.stop_single_account(username)
             
         self.log_message("⏹️ All accounts stopped", "info")
-        
+    def distribute_targets_between_accounts(self):
+            """Розподіл таргетів між вибраними акаунтами"""
+            # Отримання всіх таргетів
+            all_targets = self.targets_text.get("1.0", "end").strip()
+            parsed_targets = self.parse_targets(all_targets)
+            
+            # Отримання вибраних акаунтів
+            selected_accounts = [username for username, acc in self.accounts.items() 
+                                if acc['checkbox'].get()]
+            
+            if not selected_accounts or not parsed_targets:
+                return {}
+            
+            # Розподіл таргетів
+            from utils import TargetDistributor
+            distributor = TargetDistributor()
+            distributor.distribute_targets(parsed_targets, selected_accounts)
+            
+            # Відображення розподілу в логах
+            for account in selected_accounts:
+                targets = distributor.get_targets_for_account(account)
+                self.log_message(f"🎯 {account}: {len(targets)} таргетів - {', '.join(targets[:3])}{'...' if len(targets) > 3 else ''}", "info")
+            
+            return distributor.distributions
     def add_account_dialog(self):
         """Діалог додавання нового акаунта"""
         dialog = ctk.CTkToplevel(self.root)
